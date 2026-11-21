@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WithGaraku — GLSL透過エフェクト書き出し</title>
+<style>
+:root{
+  --bg:#131418; --panel:#1b1d22; --panel2:#22252b; --line:#2e3239;
+  --text:#e8e8eb; --muted:#9296a0; --accent:#f2b45c; --accent2:#7cc7ff;
+  --err:#ff6b6b; --ok:#7bd88f;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Noto Sans Mono", monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font:13px/1.5 system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
+button,select,input{font:inherit;color:inherit}
+.app{display:grid;grid-template-columns:minmax(380px,44%) 1fr;height:100vh}
+@media (max-width:900px){.app{grid-template-columns:1fr;height:auto}.editor-col{height:70vh}}
+
+/* ---------- editor ---------- */
+.editor-col{display:flex;flex-direction:column;border-right:1px solid var(--line);min-height:0;background:var(--panel)}
+.bar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{font-weight:700;letter-spacing:.02em;margin-right:auto}
+.brand small{color:var(--muted);font-weight:400;margin-left:6px}
+.code-wrap{flex:1;display:flex;min-height:0;font:12.5px/1.6 var(--mono)}
+.gutter{padding:10px 8px 10px 0;min-width:44px;text-align:right;color:#5b606b;background:#17191d;
+  overflow:hidden;white-space:pre;user-select:none;border-right:1px solid var(--line)}
+.gutter .e{color:#fff;background:var(--err);border-radius:3px;padding:0 3px}
+textarea#code{flex:1;resize:none;border:0;outline:0;margin:0;padding:10px 12px;background:transparent;color:var(--text);
+  font:inherit;white-space:pre;overflow:auto;tab-size:2}
+.log{max-height:28%;overflow:auto;border-top:1px solid var(--line);padding:6px 10px;font:12px/1.5 var(--mono);white-space:pre-wrap}
+.log.ok{color:var(--ok)} .log.err{color:var(--err)}
+
+/* ---------- right column ---------- */
+.right-col{display:flex;flex-direction:column;min-height:0;min-width:0}
+.preview{flex:1;min-height:280px;display:flex;align-items:center;justify-content:center;padding:16px;position:relative}
+.stage{position:relative;isolation:isolate;box-shadow:0 0 0 1px var(--line),0 8px 30px #0008;
+  background-position:center;background-repeat:no-repeat}
+.stage canvas{display:block;width:100%;height:100%}
+.bg-checker-dark{background:conic-gradient(#2b2d33 25%,#3a3d44 0 50%,#2b2d33 0 75%,#3a3d44 0) 0 0/20px 20px}
+.bg-checker-light{background:conic-gradient(#cfcfd4 25%,#fff 0 50%,#cfcfd4 0 75%,#fff 0) 0 0/20px 20px}
+.res-badge{position:absolute;right:14px;bottom:10px;color:var(--muted);font:11px var(--mono)}
+
+.panel{border-top:1px solid var(--line);background:var(--panel);padding:10px 12px;display:grid;gap:10px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.row > .label{color:var(--muted);min-width:5.5em}
+.group{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px 8px}
+.group span{color:var(--muted)}
+input[type=number],input[type=text],select{background:#121317;border:1px solid var(--line);border-radius:6px;padding:3px 6px;outline:0}
+input[type=number]{width:5.2em}
+input[type=number]:focus,input[type=text]:focus,select:focus{border-color:var(--accent)}
+input[type=range]{flex:1;min-width:120px;accent-color:var(--accent)}
+input[type=color]{width:30px;height:24px;border:0;background:none;padding:0}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer}
+button:hover{border-color:#4a4f59}
+button.primary{background:var(--accent);border-color:var(--accent);color:#1b1407;font-weight:600}
+button.primary:hover{filter:brightness(1.08)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.time{font:12px var(--mono);color:var(--muted);min-width:11em}
+.hint{color:var(--muted);font-size:12px}
+.progress{height:6px;background:#121317;border-radius:3px;overflow:hidden;flex:1;min-width:120px}
+.progress > i{display:block;height:100%;width:0;background:var(--accent);transition:width .1s}
+details{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+details summary{cursor:pointer;color:var(--accent2)}
+details code,details pre{font:12px var(--mono)}
+details pre{background:#121317;border:1px solid var(--line);border-radius:6px;padding:8px;overflow:auto;white-space:pre}
+details table{border-collapse:collapse;font-size:12px}
+details td{padding:2px 10px 2px 0;vertical-align:top}
+.file-label{position:relative;overflow:hidden}
+.file-label input{position:absolute;inset:0;opacity:0;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= Editor ================= -->
+  <section class="editor-col">
+    <div class="bar">
+      <div class="brand">WithGaraku<small>GLSL Effect Exporter</small></div>
+      <select id="preset" title="サンプル">
+        <option value="">サンプルを読み込む…</option>
+      </select>
+      <button id="btnCompile" title="Ctrl/⌘ + Enter">コンパイル</button>
+      <label class="hint"><input type="checkbox" id="autoCompile" checked> 自動</label>
+      <button id="btnSave" title=".glslとして保存">保存</button>
+      <button class="file-label" title=".glsl / .frag を開く">開く<input type="file" id="fileOpen" accept=".glsl,.frag,.fs,.txt"></button>
+    </div>
+    <div class="code-wrap">
+      <div class="gutter" id="gutter">1</div>
+      <textarea id="code" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+    </div>
+    <div class="log" id="log"></div>
+  </section>
+
+  <!-- ================= Preview & Export ================= -->
+  <section class="right-col">
+    <div class="preview" id="preview">
+      <div class="stage bg-checker-dark" id="stage"><canvas id="cv"></canvas></div>
+      <div class="res-badge" id="resBadge"></div>
+    </div>
+
+    <div class="panel">
+      <!-- playback -->
+      <div class="row">
+        <button id="btnPlay" style="min-width:4.5em">一時停止</button>
+        <input type="range" id="scrub" min="0" max="2" step="0.001" value="0">
+        <span class="time" id="timeText">0.000s / f0</span>
+        <label class="hint"><input type="checkbox" id="loop" checked> ループ</label>
+      </div>
+
+      <!-- preview options -->
+      <div class="row">
+        <span class="label">プレビュー</span>
+        <div class="group"><span>背景</span>
+          <select id="bgMode">
+            <option value="checker-dark">市松（暗）</option>
+            <option value="checker-light">市松（明）</option>
+            <option value="black">黒</option>
+            <option value="white">白</option>
+            <option value="color">単色</option>
+            <option value="image">画像</option>
+          </select>
+          <input type="color" id="bgColor" value="#6b7a99" hidden>
+          <button class="file-label" id="bgImgBtn" hidden>画像を選ぶ<input type="file" id="bgImg" accept="image/*"></button>
+          <button id="fitToImg" hidden title="出力解像度を背景画像と同じにする">画像サイズに合わせる</button>
+        </div>
+        <div class="group"><span>合成</span>
+          <select id="blend" title="プレビュー表示だけに効きます">
+            <option value="normal">通常</option>
+            <option value="screen">スクリーン</option>
+            <option value="plus-lighter">加算（発光）</option>
+          </select>
+        </div>
+        <div class="group"><span>表示解像度</span>
+          <select id="pscale">
+            <option value="1">100%</option>
+            <option value="0.5" selected>50%</option>
+            <option value="0.25">25%</option>
+          </select>
+        </div>
+        <div class="group"><span>iChannel0</span>
+          <button class="file-label" id="ch0Btn">画像…<input type="file" id="ch0" accept="image/*"></button>
+          <button id="ch0Clear" hidden>解除</button>
+        </div>
+      </div>
+
+      <!-- output -->
+      <div class="row">
+        <span class="label">出力</span>
+        <div class="group"><span>W</span><input type="number" id="w" value="1920" min="1" max="8192">
+          <span>H</span><input type="number" id="h" value="1080" min="1" max="8192"></div>
+        <div class="group"><span>fps</span><input type="number" id="fps" value="30" min="1" max="240"></div>
+        <div class="group"><span>長さ(秒)</span><input type="number" id="dur" value="2" min="0.01" step="0.1"></div>
+        <div class="group"><span>開始</span><input type="number" id="start" value="0" step="0.1"></div>
+        <span class="hint" id="frameInfo"></span>
+      </div>
+      <div class="row">
+        <span class="label">アルファ</span>
+        <div class="group">
+          <select id="alphaMode">
+            <option value="0">straight — vec4(col, a)</option>
+            <option value="1">premultiplied — vec4(col*a, a)</option>
+          </select>
+        </div>
+        <label class="group" title="アルファを捨て、黒背景に合成した不透明PNGを書き出します（加算・スクリーン用）">
+          <input type="checkbox" id="blackBg"> 黒背景で書き出す（加算／スクリーン用）
+        </label>
+        <div class="group"><span>ファイル名</span><input type="text" id="prefix" value="frame_" style="width:8em"></div>
+      </div>
+
+      <!-- export -->
+      <div class="row">
+        <button id="btnStill">現在のフレームをPNG</button>
+        <button class="primary" id="btnZip">連番をZIPで書き出し</button>
+        <button id="btnDir" title="Chrome / Edge のみ">連番をフォルダへ書き出し</button>
+        <button id="btnCancel" hidden>中止</button>
+        <div class="progress"><i id="bar"></i></div>
+        <span class="hint" id="status"></span>
+      </div>
+
+      <details>
+        <summary>使い方・メモ</summary>
+        <p>Shadertoy と同じ <code>mainImage(out vec4 fragColor, in vec2 fragCoord)</code> 形式で書けます。<code>fragColor</code> のアルファがそのまま PNG の透過になります。</p>
+        <table>
+          <tr><td><code>iResolution</code></td><td>出力解像度（px）。プレビュー縮小中はその解像度</td></tr>
+          <tr><td><code>iTime</code> / <code>iTimeDelta</code></td><td>秒。書き出し時は <code>開始 + i / fps</code> で正確に進みます</td></tr>
+          <tr><td><code>iFrame</code> / <code>iFrameRate</code></td><td>フレーム番号 / fps</td></tr>
+          <tr><td><code>iDuration</code></td><td>「長さ」の秒数（独自）。<code>fract(iTime / iDuration)</code> でループが綺麗に繋がります</td></tr>
+          <tr><td><code>iMouse</code>, <code>iDate</code></td><td>Shadertoy 互換</td></tr>
+          <tr><td><code>iChannel0</code>, <code>iChannelResolution[0]</code></td><td>読み込んだ画像（左下原点）。未設定なら透明</td></tr>
+        </table>
+        <p><b>アルファの扱い</b><br>
+        ・<b>straight</b>：色とアルファを別々に書く普通の書き方。煙・墨・影など「不透明感のあるもの」向け。<br>
+        ・<b>premultiplied</b>：色にすでにアルファが掛かっている書き方。光を足し算で重ねていくシェーダーはこちらが自然です。<br>
+        ・<b>黒背景で書き出す</b>：アルファを使わず黒に合成した PNG を出力。クリスタで「加算（発光）」「スクリーン」にして乗せる用。発光・火花・ブルーム向け。</p>
+        <p><b>連番 → 動画</b>（ffmpeg）</p>
+<pre># ProRes 4444（透過あり・編集ソフト向け）
+ffmpeg -framerate 30 -i frame_%04d.png -c:v prores_ks -profile:v 4444 -pix_fmt yuva444p10le out.mov
+# WebM VP9（透過あり・Web向け）
+ffmpeg -framerate 30 -i frame_%04d.png -c:v libvpx-vp9 -pix_fmt yuva420p -b:v 0 -crf 20 out.webm
+# APNG（透過あり・ループ画像）
+ffmpeg -framerate 30 -i frame_%04d.png -plays 0 out.apng</pre>
+        <p class="hint">Ctrl/⌘+Enter でコンパイル。コードと設定はこのブラウザに自動保存されます。Shadertoy のマルチパス（Buffer A など）には対応していません。</p>
+      </details>
+    </div>
+  </section>
+</div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+
+/* ================================================================
+   Presets
+   ================================================================ */
+const PRESETS = [
+{
+  name: '衝撃波リング（straight）', alphaMode: 0, blackBg: false,
+  code: `// 衝撃波リング — straight アルファ: fragColor = vec4(色, 不透明度)
+// iDuration（長さ）で1回広がって消えます
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
+{
+    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
+    float t = fract(iTime / iDuration);          // 0→1 を繰り返す
+
+    float ang = atan(uv.y, uv.x);
+    float r = length(uv);
+    float radius = mix(0.02, 0.48, 1.0 - pow(1.0 - t, 3.0));
+    radius += 0.008 * sin(ang * 14.0 + t * 20.0); // 縁のゆらぎ
+
+    float width = mix(0.01, 0.06, t);
+    float ring = smoothstep(width, 0.0, abs(r - radius));
+    float inner = smoothstep(radius, 0.0, r) * 0.15; // 内側のうっすらした面
+    float fade = pow(1.0 - t, 1.5);
+
+    vec3 col = mix(vec3(0.55, 0.85, 1.0), vec3(1.0), ring);
+    float a = clamp((ring + inner) * fade, 0.0, 1.0);
+
+    fragColor = vec4(col, a);
+}
+`},
+{
+  name: '光の粒（premultiplied＋黒背景）', alphaMode: 1, blackBg: true,
+  code: `// 光の粒 — 光を足し算で重ねるので premultiplied で書いています
+// 「黒背景で書き出す」にして、クリスタで加算（発光）／スクリーン合成がおすすめ
+
+float hash(float n) { return fract(sin(n) * 43758.5453); }
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
+{
+    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
+    float aspect = iResolution.x / iResolution.y;
+    float loopT = iTime / iDuration;               // 整数倍で動かすとループが繋がる
+
+    vec3 col = vec3(0.0);
+    for (int i = 0; i < 70; i++) {
+        float fi = float(i);
+        float cycles = 1.0 + floor(hash(fi * 3.7) * 2.0);
+        float y = fract(hash(fi * 1.3) + loopT * cycles);
+        float phase = 6.2831853 * (loopT * cycles + hash(fi * 2.9));
+        vec2 p = vec2((hash(fi * 5.1) - 0.5) * aspect + 0.03 * sin(phase),
+                      mix(-0.6, 0.6, y));
+
+        float d = length(uv - p);
+        float size = mix(0.00008, 0.0004, hash(fi * 8.3));
+        float g = size / (d * d + size) * smoothstep(0.12, 0.0, d);
+        float twinkle = 0.55 + 0.45 * sin(phase * 3.0 + fi);
+        float fade = smoothstep(0.0, 0.15, y) * smoothstep(1.0, 0.7, y);
+
+        vec3 tint = mix(vec3(1.0, 0.72, 0.32), vec3(0.55, 0.85, 1.0), hash(fi * 9.3));
+        col += tint * g * twinkle * fade;
+    }
+
+    float a = clamp(max(col.r, max(col.g, col.b)), 0.0, 1.0);
+    fragColor = vec4(col, a);   // premultiplied: 色にはすでにアルファ分が含まれている
+}
+`},
+{
+  name: '墨・煙（straight）', alphaMode: 0, blackBg: false, bg: 'checker-light',
+  code: `// 墨・煙 — 不透明感のあるものは straight アルファで
+// ノイズ空間を円周上で動かしてループさせています
+
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+float noise(vec2 p)
+{
+    vec2 i = floor(p), f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash(i),                 hash(i + vec2(1.0, 0.0)), u.x),
+               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
+float fbm(vec2 p)
+{
+    float v = 0.0, amp = 0.5;
+    for (int i = 0; i < 5; i++) {
+        v += amp * noise(p);
+        p = p * 2.03 + vec2(1.7, 9.2);
+        amp *= 0.5;
+    }
+    return v;
+}
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
+{
+    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
+    float ph = 6.2831853 * iTime / iDuration;
+    vec2 flow = vec2(cos(ph), sin(ph)) * 0.7;
+
+    vec2 q = uv * 2.8;
+    vec2 w = vec2(fbm(q + flow), fbm(q + flow + vec2(5.2, 1.3)));
+    float n = fbm(q + 1.6 * w + 0.5 * flow);
+
+    float shape = smoothstep(0.6, 0.1, length(uv * vec2(0.9, 1.2)));
+    float density = smoothstep(0.3, 0.55, n * (0.6 + 0.6 * shape)) * shape;
+
+    vec3 ink = mix(vec3(0.04, 0.035, 0.07), vec3(0.32, 0.22, 0.48), smoothstep(0.5, 0.9, n));
+    fragColor = vec4(ink, clamp(density * 0.95, 0.0, 1.0));
+}
+`}
+];
+
+/* ================================================================
+   WebGL setup
+   ================================================================ */
+const canvas = $('#cv');
+const gl = canvas.getContext('webgl2', {
+  alpha: true,
+  premultipliedAlpha: false,   // straight のまま書き出すので低アルファ部の精度が落ちない
+  preserveDrawingBuffer: true, // toBlob で読み出すため
+  antialias: false,
+});
+
+const VERT = `#version 300 es
+void main() {
+  vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);
+  gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
+}`;
+
+const FRAG_HEAD = `#version 300 es
+precision highp float;
+precision highp int;
+uniform vec3  iResolution;
+uniform float iTime;
+uniform float iTimeDelta;
+uniform int   iFrame;
+uniform float iFrameRate;
+uniform vec4  iMouse;
+uniform vec4  iDate;
+uniform float iDuration;
+uniform sampler2D iChannel0;
+uniform vec3  iChannelResolution[4];
+uniform int   _alphaMode;
+uniform int   _blackBg;
+out vec4 _outColor;
+#line 1
+`;
+
+const FRAG_TAIL = `
+void main() {
+  vec4 c = vec4(0.0);
+  mainImage(c, gl_FragCoord.xy);
+  c = max(c, 0.0);
+  c.a = min(c.a, 1.0);
+  vec3 premul = (_alphaMode == 0) ? c.rgb * c.a : c.rgb;
+  if (_blackBg == 1) {
+    _outColor = vec4(min(premul, 1.0), 1.0);
+  } else if (_alphaMode == 0) {
+    _outColor = vec4(min(c.rgb, 1.0), c.a);
+  } else {
+    vec3 straight = c.a > 0.0 ? min(c.rgb, vec3(c.a)) / c.a : vec3(0.0);
+    _outColor = vec4(straight, c.a);
+  }
+}
+`;
+
+const UNIFORMS = ['iResolution','iTime','iTimeDelta','iFrame','iFrameRate','iMouse','iDate',
+  'iDuration','iChannel0','iChannelResolution','_alphaMode','_blackBg'];
+
+let prog = null, U = {}, vsObj = null, vao = null, tex0 = null, tex0Size = [1, 1];
+
+function initGL() {
+  vsObj = gl.createShader(gl.VERTEX_SHADER);
+  gl.shaderSource(vsObj, VERT);
+  gl.compileShader(vsObj);
+  vao = gl.createVertexArray();
+  tex0 = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex0);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
+  gl.disable(gl.BLEND);
+  gl.disable(gl.DEPTH_TEST);
+}
+
+/* ================================================================
+   Editor
+   ================================================================ */
+const code = $('#code'), gutter = $('#gutter'), log = $('#log');
+let errorLines = new Set();
+
+function updateGutter() {
+  const n = code.value.split('\n').length;
+  let html = '';
+  for (let i = 1; i <= n; i++) html += (errorLines.has(i) ? `<span class="e">${i}</span>` : i) + '\n';
+  gutter.innerHTML = html;
+  gutter.scrollTop = code.scrollTop;
+}
+code.addEventListener('scroll', () => { gutter.scrollTop = code.scrollTop; });
+
+code.addEventListener('keydown', e => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    code.setRangeText('  ', code.selectionStart, code.selectionEnd, 'end');
+    onCodeInput();
+  } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    compile();
+  }
+});
+
+let compileTimer = 0;
+function onCodeInput() {
+  updateGutter();
+  scheduleSave();
+  if ($('#autoCompile').checked) {
+    clearTimeout(compileTimer);
+    compileTimer = setTimeout(compile, 450);
+  }
+}
+code.addEventListener('input', onCodeInput);
+
+function showLog(text, ok) {
+  log.textContent = text;
+  log.className = 'log ' + (ok ? 'ok' : 'err');
+}
+
+function compile() {
+  const userSrc = code.value.replace(/^[ \t]*#version.*$/gm, '');
+  const userLines = userSrc.split('\n').length;
+  const fs = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(fs, FRAG_HEAD + userSrc + FRAG_TAIL);
+  gl.compileShader(fs);
+  if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+    reportErrors(gl.getShaderInfoLog(fs) || 'compile error', userLines);
+    gl.deleteShader(fs);
+    return false;
+  }
+  const p = gl.createProgram();
+  gl.attachShader(p, vsObj);
+  gl.attachShader(p, fs);
+  gl.linkProgram(p);
+  gl.deleteShader(fs);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+    reportErrors(gl.getProgramInfoLog(p) || 'link error', userLines);
+    gl.deleteProgram(p);
+    return false;
+  }
+  if (prog) gl.deleteProgram(prog);
+  prog = p;
+  U = {};
+  for (const n of UNIFORMS) U[n] = gl.getUniformLocation(p, n);
+  errorLines = new Set();
+  updateGutter();
+  showLog('✓ コンパイルOK', true);
+  dirty = true;
+  return true;
+}
+
+function reportErrors(info, userLines) {
+  errorLines = new Set();
+  const out = [];
+  for (const raw of info.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    const m = line.match(/^(?:ERROR|WARNING):\s*\d+:(\d+):\s*(.*)$/);
+    if (m) {
+      const ln = +m[1];
+      if (ln >= 1 && ln <= userLines) { errorLines.add(ln); out.push(`${ln}行目: ${m[2]}`); }
+      else out.push(`(末尾) ${m[2]}　← mainImage が無い・括弧の閉じ忘れなど`);
+    } else out.push(line);
+  }
+  updateGutter();
+  showLog(out.join('\n'), false);
+}
+
+/* ================================================================
+   Settings
+   ================================================================ */
+const num = (id, def, min, max) => {
+  let v = parseFloat($(id).value);
+  if (!isFinite(v)) v = def;
+  return Math.min(max, Math.max(min, v));
+};
+function S() {
+  return {
+    w: Math.round(num('#w', 1920, 1, 8192)),
+    h: Math.round(num('#h', 1080, 1, 8192)),
+    fps: num('#fps', 30, 1, 240),
+    dur: num('#dur', 2, 0.01, 3600),
+    start: num('#start', 0, -1e6, 1e6),
+    prefix: ($('#prefix').value || 'frame_').replace(/[\\/:*?"<>|]/g, '_'),
+    alphaMode: +$('#alphaMode').value,
+    blackBg: $('#blackBg').checked,
+    pscale: +$('#pscale').value,
+  };
+}
+function frameCountOf(s) { return Math.max(1, Math.round(s.dur * s.fps)); }
+
+function applyResolution(scale) {
+  const s = S();
+  const sc = scale ?? s.pscale;
+  canvas.width = Math.max(1, Math.round(s.w * sc));
+  canvas.height = Math.max(1, Math.round(s.h * sc));
+  dirty = true;
+}
+
+function fitStage() {
+  const s = S();
+  const box = $('#preview');
+  const bw = box.clientWidth - 32, bh = box.clientHeight - 32;
+  const k = Math.min(bw / s.w, bh / s.h);
+  const stage = $('#stage');
+  stage.style.width = Math.max(1, Math.floor(s.w * k)) + 'px';
+  stage.style.height = Math.max(1, Math.floor(s.h * k)) + 'px';
+  $('#resBadge').textContent = `出力 ${s.w}×${s.h}  /  表示 ${canvas.width}×${canvas.height}`;
+}
+
+function updateFrameInfo() {
+  const s = S();
+  const n = frameCountOf(s);
+  $('#frameInfo').textContent = `${n} フレーム（${s.start.toFixed(2)}s 〜 ${(s.start + (n - 1) / s.fps).toFixed(2)}s）`;
+  $('#scrub').max = s.dur;
+  $('#scrub').step = 1 / s.fps;
+}
+
+function onSettingsChange() {
+  applyResolution();
+  fitStage();
+  updateFrameInfo();
+  scheduleSave();
+  dirty = true;
+}
+['#w','#h','#fps','#dur','#start','#prefix','#alphaMode','#blackBg','#pscale'].forEach(id =>
+  $(id).addEventListener('change', onSettingsChange));
+['#w','#h','#fps','#dur','#start'].forEach(id => $(id).addEventListener('input', () => { updateFrameInfo(); }));
+window.addEventListener('resize', fitStage);
+
+/* ---------- preview background & blend ---------- */
+let bgImage = null; // {url, w, h}
+function applyBg() {
+  const mode = $('#bgMode').value;
+  const stage = $('#stage');
+  stage.className = 'stage';
+  stage.style.background = '';
+  $('#bgColor').hidden = mode !== 'color';
+  $('#bgImgBtn').hidden = mode !== 'image';
+  $('#fitToImg').hidden = !(mode === 'image' && bgImage);
+  if (mode === 'checker-dark') stage.classList.add('bg-checker-dark');
+  else if (mode === 'checker-light') stage.classList.add('bg-checker-light');
+  else if (mode === 'black') stage.style.background = '#000';
+  else if (mode === 'white') stage.style.background = '#fff';
+  else if (mode === 'color') stage.style.background = $('#bgColor').value;
+  else if (mode === 'image') {
+    if (bgImage) stage.style.background = `#000 url("${bgImage.url}") center / cover no-repeat`;
+    else stage.classList.add('bg-checker-dark');
+  }
+  scheduleSave();
+}
+$('#bgMode').addEventListener('change', applyBg);
+$('#bgColor').addEventListener('input', applyBg);
+$('#bgImg').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onload = () => {
+    if (bgImage) URL.revokeObjectURL(bgImage.url);
+    bgImage = { url, w: img.naturalWidth, h: img.naturalHeight };
+    applyBg();
+  };
+  img.src = url;
+  e.target.value = '';
+});
+$('#fitToImg').addEventListener('click', () => {
+  if (!bgImage) return;
+  $('#w').value = bgImage.w;
+  $('#h').value = bgImage.h;
+  onSettingsChange();
+});
+$('#blend').addEventListener('change', () => {
+  canvas.style.mixBlendMode = $('#blend').value;
+  scheduleSave();
+});
+
+/* ---------- iChannel0 ---------- */
+$('#ch0').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onload = () => {
+    gl.bindTexture(gl.TEXTURE_2D, tex0);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    tex0Size = [img.naturalWidth, img.naturalHeight];
+    $('#ch0Btn').firstChild.textContent = f.name.length > 14 ? f.name.slice(0, 13) + '…' : f.name;
+    $('#ch0Clear').hidden = false;
+    URL.revokeObjectURL(url);
+    dirty = true;
+  };
+  img.src = url;
+  e.target.value = '';
+});
+$('#ch0Clear').addEventListener('click', () => {
+  gl.bindTexture(gl.TEXTURE_2D, tex0);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  tex0Size = [1, 1];
+  $('#ch0Btn').firstChild.textContent = '画像…';
+  $('#ch0Clear').hidden = true;
+  dirty = true;
+});
+
+/* ---------- mouse (Shadertoy 互換) ---------- */
+const mouse = { x: 0, y: 0, cx: 0, cy: 0, down: false };
+function mousePos(e) {
+  const r = canvas.getBoundingClientRect();
+  return [(e.clientX - r.left) / r.width, 1 - (e.clientY - r.top) / r.height];
+}
+canvas.addEventListener('pointerdown', e => {
+  [mouse.x, mouse.y] = mousePos(e);
+  mouse.cx = mouse.x; mouse.cy = mouse.y; mouse.down = true;
+  canvas.setPointerCapture(e.pointerId);
+  dirty = true;
+});
+canvas.addEventListener('pointermove', e => { if (mouse.down) { [mouse.x, mouse.y] = mousePos(e); dirty = true; } });
+canvas.addEventListener('pointerup', () => { mouse.down = false; dirty = true; });
+
+/* ================================================================
+   Render & playback
+   ================================================================ */
+function render(time, frame, dt) {
+  if (!prog) return;
+  const s = S();
+  const W = canvas.width, H = canvas.height;
+  gl.viewport(0, 0, W, H);
+  gl.useProgram(prog);
+  gl.bindVertexArray(vao);
+  gl.uniform3f(U.iResolution, W, H, 1);
+  gl.uniform1f(U.iTime, time);
+  gl.uniform1f(U.iTimeDelta, dt);
+  gl.uniform1i(U.iFrame, frame);
+  gl.uniform1f(U.iFrameRate, s.fps);
+  gl.uniform1f(U.iDuration, s.dur);
+  const mz = mouse.cx * W, mw = mouse.cy * H;
+  gl.uniform4f(U.iMouse, mouse.x * W, mouse.y * H, mouse.down ? mz : -mz, mouse.down ? mw : -mw);
+  const d = new Date();
+  gl.uniform4f(U.iDate, d.getFullYear(), d.getMonth(), d.getDate(),
+    d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds());
+  const res = new Float32Array(12);
+  res[0] = tex0Size[0]; res[1] = tex0Size[1]; res[2] = 1;
+  gl.uniform3fv(U.iChannelResolution, res);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, tex0);
+  gl.uniform1i(U.iChannel0, 0);
+  gl.uniform1i(U._alphaMode, s.alphaMode);
+  gl.uniform1i(U._blackBg, s.blackBg ? 1 : 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+let playing = true, elapsed = 0, last = performance.now(), frameCounter = 0;
+let dirty = true, exporting = false, scrubbing = false;
+
+function tick(now) {
+  const dt = Math.min(0.1, (now - last) / 1000);
+  last = now;
+  if (!exporting) {
+    const s = S();
+    if (playing && !scrubbing) {
+      elapsed += dt;
+      if ($('#loop').checked) elapsed = ((elapsed % s.dur) + s.dur) % s.dur;
+    }
+    if (playing || dirty) {
+      render(s.start + elapsed, frameCounter++, dt);
+      dirty = false;
+      $('#scrub').value = Math.min(elapsed, s.dur);
+      $('#timeText').textContent = `${(s.start + elapsed).toFixed(3)}s / f${Math.floor(elapsed * s.fps + 1e-6)}`;
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+$('#btnPlay').addEventListener('click', () => {
+  playing = !playing;
+  $('#btnPlay').textContent = playing ? '一時停止' : '再生';
+});
+$('#scrub').addEventListener('input', () => {
+  elapsed = +$('#scrub').value;
+  dirty = true;
+});
+$('#scrub').addEventListener('pointerdown', () => { scrubbing = true; });
+window.addEventListener('pointerup', () => { scrubbing = false; });
+
+/* ================================================================
+   Export
+   ================================================================ */
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(bytes) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+/** 無圧縮(store)ZIP。PNGはすでに圧縮済みなので再圧縮は不要 */
+class ZipSink {
+  constructor() {
+    this.parts = []; this.central = []; this.offset = 0; this.cdSize = 0; this.count = 0;
+    const d = new Date();
+    this.time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    this.date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  }
+  async add(name, blob) {
+    const data = new Uint8Array(await blob.arrayBuffer());
+    const crc = crc32(data), size = data.length;
+    const nb = new TextEncoder().encode(name);
+    if (this.offset + 30 + nb.length + size > 0xFFFFFFFF)
+      throw new Error('ZIPが4GBを超えます。「フォルダへ書き出し」を使ってください');
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+    lh.setUint16(8, 0, true); lh.setUint16(10, this.time, true); lh.setUint16(12, this.date, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, size, true); lh.setUint32(22, size, true);
+    lh.setUint16(26, nb.length, true); lh.setUint16(28, 0, true);
+    this.parts.push(lh, nb, blob);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true);
+    ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true); ch.setUint16(12, this.time, true);
+    ch.setUint16(14, this.date, true); ch.setUint32(16, crc, true); ch.setUint32(20, size, true);
+    ch.setUint32(24, size, true); ch.setUint16(28, nb.length, true); ch.setUint16(30, 0, true);
+    ch.setUint16(32, 0, true); ch.setUint16(34, 0, true); ch.setUint16(36, 0, true);
+    ch.setUint32(38, 0, true); ch.setUint32(42, this.offset, true);
+    this.central.push(ch, nb);
+    this.offset += 30 + nb.length + size;
+    this.cdSize += 46 + nb.length;
+    this.count++;
+  }
+  async finish(zipName) {
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(4, 0, true); end.setUint16(6, 0, true);
+    end.setUint16(8, this.count, true); end.setUint16(10, this.count, true);
+    end.setUint32(12, this.cdSize, true); end.setUint32(16, this.offset, true); end.setUint16(20, 0, true);
+    download(new Blob([...this.parts, ...this.central, end], { type: 'application/zip' }), zipName);
+  }
+}
+
+class DirSink {
+  constructor(dir) { this.dir = dir; }
+  async add(name, blob) {
+    const fh = await this.dir.getFileHandle(name, { create: true });
+    const w = await fh.createWritable();
+    await w.write(blob);
+    await w.close();
+  }
+  async finish() {}
+}
+
+function download(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+
+const canvasBlob = () => new Promise((res, rej) =>
+  canvas.toBlob(b => b ? res(b) : rej(new Error('PNGの生成に失敗しました（解像度が大きすぎる可能性があります）')), 'image/png'));
+
+let cancelReq = false;
+function setBusy(b) {
+  exporting = b;
+  ['#btnStill', '#btnZip', '#btnDir'].forEach(id => { $(id).disabled = b || (id === '#btnDir' && !window.showDirectoryPicker); });
+  $('#btnCancel').hidden = !b;
+}
+function setStatus(t) { $('#status').textContent = t; }
+function setProgress(r) { $('#bar').style.width = (r * 100).toFixed(1) + '%'; }
+
+async function exportStill() {
+  if (!prog) return setStatus('先にシェーダーをコンパイルしてください');
+  const s = S();
+  setBusy(true);
+  try {
+    applyResolution(1);
+    const t = s.start + elapsed;
+    render(t, Math.floor(elapsed * s.fps), 1 / s.fps);
+    const blob = await canvasBlob();
+    download(blob, `${s.prefix}t${t.toFixed(3)}.png`);
+    setStatus(`PNGを書き出しました（${s.w}×${s.h}）`);
+  } catch (e) {
+    setStatus('エラー: ' + e.message);
+  } finally {
+    applyResolution();
+    setBusy(false);
+  }
+}
+
+async function exportSequence(kind) {
+  if (!prog) return setStatus('先にシェーダーをコンパイルしてください');
+  const s = S();
+  const n = frameCountOf(s);
+  let sink;
+  if (kind === 'dir') {
+    try { sink = new DirSink(await window.showDirectoryPicker({ mode: 'readwrite' })); }
+    catch (e) { if (e.name !== 'AbortError') setStatus('エラー: ' + e.message); return; }
+  } else sink = new ZipSink();
+
+  const pad = Math.max(4, String(n - 1).length);
+  cancelReq = false;
+  setBusy(true);
+  setProgress(0);
+  const t0 = performance.now();
+  try {
+    applyResolution(1);
+    for (let i = 0; i < n; i++) {
+      if (cancelReq) break;
+      render(s.start + i / s.fps, i, 1 / s.fps);
+      const blob = await canvasBlob();
+      await sink.add(`${s.prefix}${String(i).padStart(pad, '0')}.png`, blob);
+      setProgress((i + 1) / n);
+      setStatus(`${i + 1} / ${n}`);
+      if (i % 3 === 2) await new Promise(r => setTimeout(r, 0));
+    }
+    if (cancelReq) setStatus('中止しました');
+    else {
+      if (kind === 'zip') setStatus('ZIPを作成中…');
+      const base = s.prefix.replace(/[_\-.\s]+$/, '') || 'frames';
+      await sink.finish(`${base}_${s.w}x${s.h}_${s.fps}fps_${n}f.zip`);
+      setStatus(`完了：${n}フレーム（${((performance.now() - t0) / 1000).toFixed(1)}秒）`);
+    }
+  } catch (e) {
+    setStatus('エラー: ' + e.message);
+  } finally {
+    applyResolution();
+    setBusy(false);
+  }
+}
+
+$('#btnStill').addEventListener('click', exportStill);
+$('#btnZip').addEventListener('click', () => exportSequence('zip'));
+$('#btnDir').addEventListener('click', () => exportSequence('dir'));
+$('#btnCancel').addEventListener('click', () => { cancelReq = true; });
+
+/* ================================================================
+   Save / load / presets
+   ================================================================ */
+const STORE_KEY = 'withgaraku.glsl-exporter.v1';
+let saveTimer = 0;
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      const settings = {};
+      for (const id of ['w','h','fps','dur','start','prefix','alphaMode','pscale','bgMode','bgColor','blend'])
+        settings[id] = $('#' + id).value;
+      settings.blackBg = $('#blackBg').checked;
+      settings.loop = $('#loop').checked;
+      settings.autoCompile = $('#autoCompile').checked;
+      localStorage.setItem(STORE_KEY, JSON.stringify({ code: code.value, settings }));
+    } catch (_) { /* storage unavailable */ }
+  }, 300);
+}
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return false;
+    const { code: c, settings } = JSON.parse(raw);
+    if (typeof c === 'string') code.value = c;
+    if (settings) {
+      for (const [k, v] of Object.entries(settings)) {
+        const el = $('#' + k);
+        if (!el) continue;
+        if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
+      }
+      if (settings.bgMode === 'image') $('#bgMode').value = 'checker-dark'; // 画像は保存されないので戻す
+    }
+    return typeof c === 'string';
+  } catch (_) { return false; }
+}
+
+const presetSel = $('#preset');
+PRESETS.forEach((p, i) => presetSel.add(new Option(p.name, i)));
+presetSel.addEventListener('change', () => {
+  const p = PRESETS[+presetSel.value];
+  presetSel.value = '';
+  if (!p) return;
+  const isPreset = PRESETS.some(q => q.code === code.value);
+  if (code.value.trim() && !isPreset && !confirm('今のコードを置き換えます。よろしいですか？（「保存」で .glsl に残せます）')) return;
+  loadPreset(p);
+});
+function loadPreset(p) {
+  code.value = p.code;
+  $('#alphaMode').value = p.alphaMode;
+  $('#blackBg').checked = p.blackBg;
+  if (p.blackBg) { $('#bgMode').value = 'black'; $('#blend').value = 'normal'; }
+  else $('#bgMode').value = p.bg || 'checker-dark';
+  canvas.style.mixBlendMode = $('#blend').value;
+  applyBg();
+  onSettingsChange();
+  updateGutter();
+  compile();
+}
+
+$('#btnSave').addEventListener('click', () => {
+  download(new Blob([code.value], { type: 'text/plain' }), 'effect.glsl');
+});
+$('#fileOpen').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  code.value = await f.text();
+  e.target.value = '';
+  onCodeInput();
+  compile();
+});
+$('#loop').addEventListener('change', scheduleSave);
+$('#autoCompile').addEventListener('change', scheduleSave);
+
+/* ================================================================
+   Boot
+   ================================================================ */
+if (!gl) {
+  showLog('このブラウザでは WebGL2 が使えません。最新の Chrome / Edge / Firefox / Safari で開いてください。', false);
+} else {
+  initGL();
+  const restored = loadSaved();
+  if (!restored) loadPreset(PRESETS[0]);
+  else {
+    canvas.style.mixBlendMode = $('#blend').value;
+    applyBg();
+    onSettingsChange();
+    updateGutter();
+    compile();
+  }
+  if (!window.showDirectoryPicker) {
+    $('#btnDir').disabled = true;
+    $('#btnDir').title = 'このブラウザは未対応です（Chrome / Edge で使えます）';
+  }
+  requestAnimationFrame(tick);
+}
+</script>
+</body>
+</html>
