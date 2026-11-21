@@ -124,8 +124,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
       </select>
       <button id="btnCompile" title="Ctrl/⌘ + Enter">コンパイル</button>
       <label class="hint"><input type="checkbox" id="autoCompile" checked> 自動</label>
-      <button id="btnSave" title=".glslとして保存">保存</button>
-      <button class="file-label" title=".glsl / .frag を開く">開く<input type="file" id="fileOpen" accept=".glsl,.frag,.fs,.txt"></button>
+      <button id="btnSave" title="このGLSLレイヤーのコードを .glsl で保存">GLSL保存</button>
+      <button class="file-label" title=".glsl / .frag を読み込む">GLSL読込<input type="file" id="fileOpen" accept=".glsl,.frag,.fs,.txt"></button>
       <span class="editing" id="editing"></span>
     </div>
     <div class="code-wrap">
@@ -217,6 +217,15 @@ button:disabled{opacity:.45;cursor:not-allowed}
     </div>
 
     <div class="panel">
+      <div class="row">
+        <span class="label">プロジェクト</span>
+        <button id="projNew">新規</button>
+        <button id="projOpenBtn" title="Ctrl/⌘+O">開く</button>
+        <input type="file" id="projOpen" accept=".glslfx" hidden>
+        <button id="projSave" title="Ctrl/⌘+S">保存</button>
+        <button id="projSaveAs" title="Ctrl/⌘+Shift+S">別名で保存</button>
+        <span class="hint" id="projName">無題</span>
+      </div>
       <div class="row">
         <button id="btnPlay" style="min-width:4.5em">一時停止</button>
         <input type="range" id="scrub" min="0" max="2" step="0.001" value="0">
@@ -1348,6 +1357,8 @@ window.addEventListener('drop', e => {
   e.preventDefault();
   dragDepth = 0; previewEl.classList.remove('dropping');
   const files = [...e.dataTransfer.files];
+  const proj = files.find(f => /\.glslfx$/i.test(f.name));
+  if (proj) { if (confirmDiscard()) openProject(proj, null); return; }
   const glsl = files.find(f => /\.(glsl|frag|fs)$/i.test(f.name));
   if (glsl) openShaderFile(glsl);
   addImageFiles(files);
@@ -2079,13 +2090,14 @@ class ZipSink {
     this.cdSize += 46 + nb.length;
     this.count++;
   }
-  async finish(zipName) {
+  build() {
     const end = new DataView(new ArrayBuffer(22));
     end.setUint32(0, 0x06054b50, true); end.setUint16(4, 0, true); end.setUint16(6, 0, true);
     end.setUint16(8, this.count, true); end.setUint16(10, this.count, true);
     end.setUint32(12, this.cdSize, true); end.setUint32(16, this.offset, true); end.setUint16(20, 0, true);
-    download(new Blob([...this.parts, ...this.central, end], { type: 'application/zip' }), zipName);
+    return new Blob([...this.parts, ...this.central, end], { type: 'application/zip' });
   }
+  async finish(zipName) { download(this.build(), zipName); }
 }
 class DirSink {
   constructor(dir) { this.dir = dir; }
@@ -2209,25 +2221,47 @@ const STORE_KEY = 'glsl-effect-exporter.v3';
 const V2_KEY = 'glsl-effect-exporter.v2';
 const V1_KEY = 'withgaraku.glsl-exporter.v1';
 const SETTING_IDS = ['w','h','fps','dur','start','prefix','pscale','bgMode','bgColor','blackBg','loop','autoCompile','pLock'];
+const DEFAULT_SETTINGS = {};
+for (const id of SETTING_IDS) { const el = $('#' + id); DEFAULT_SETTINGS[id] = el.type === 'checkbox' ? el.checked : el.value; }
 let saveTimer = 0, booting = true;
+
+function serializeState() {
+  const settings = {};
+  for (const id of SETTING_IDS) {
+    const el = $('#' + id);
+    settings[id] = el.type === 'checkbox' ? el.checked : el.value;
+  }
+  const ls = layers.map(l => {
+    const base = { id: l.id, type: l.type, name: l.name, visible: l.visible, opacity: l.opacity,
+      blend: l.blend, clip: l.clip, fx: { ...l.fx } };
+    return l.type === 'shader'
+      ? { ...base, code: l.code, alphaMode: l.alphaMode }
+      : { ...base, cx: l.cx, cy: l.cy, sx: l.sx, sy: l.sy, rot: l.rot, flipH: l.flipH, flipV: l.flipV, interp: l.interp };
+  });
+  return { settings, layers: ls };
+}
+function hashStr(str) {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+const stateSig = () => hashStr(JSON.stringify(serializeState()));
+
 function scheduleSave() {
   if (booting) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
+    const st = serializeState();
+    project.dirty = hashStr(JSON.stringify(st)) !== project.sig;
+    updateProjLabel();
     try {
-      const settings = {};
-      for (const id of SETTING_IDS) {
-        const el = $('#' + id);
-        settings[id] = el.type === 'checkbox' ? el.checked : el.value;
-      }
-      const ls = layers.map(l => {
-        const base = { id: l.id, type: l.type, name: l.name, visible: l.visible, opacity: l.opacity,
-          blend: l.blend, clip: l.clip, fx: l.fx };
-        return l.type === 'shader'
-          ? { ...base, code: l.code, alphaMode: l.alphaMode }
-          : { ...base, cx: l.cx, cy: l.cy, sx: l.sx, sy: l.sy, rot: l.rot, flipH: l.flipH, flipV: l.flipV, interp: l.interp };
-      });
-      localStorage.setItem(STORE_KEY, JSON.stringify({ settings, layers: ls, selId }));
+      localStorage.setItem(STORE_KEY, JSON.stringify({ ...st, selId, projName: project.name, projSig: project.sig }));
     } catch (_) { /* storage unavailable */ }
   }, 300);
 }
@@ -2239,7 +2273,7 @@ function applySettings(settings) {
   }
   if ($('#bgMode').selectedIndex < 0) $('#bgMode').value = 'checker-dark';
 }
-async function restoreLayers(list, legacy) {
+async function restoreLayers(list, legacy, blobs) {
   const s = S();
   for (const d of list || []) {
     if (legacy && d.blend === 'add') d.blend = 'addglow';   // 旧「加算（発光）」
@@ -2249,8 +2283,9 @@ async function restoreLayers(list, legacy) {
       layers.push(l);
     } else if (d.type === 'image') {
       try {
-        const blob = await idb.get(d.id);
+        const blob = blobs ? blobs.get(d.id) : await idb.get(d.id);
         if (!blob) continue;
+        if (blobs) idb.put(d.id, blob).catch(() => {});
         const l = makeImageLayer({ ...d, blob });
         await loadImageLayer(l);
         if (legacy || d.cx === undefined) {           // 旧形式（割合・キャンバスに収まる大きさ基準）
@@ -2267,6 +2302,7 @@ async function restore() {
   let data = read(STORE_KEY), legacy = false;
   if (!data) { data = read(V2_KEY); legacy = !!data; }
   if (data) {
+    if (!legacy) { project.name = data.projName || '無題'; project.sig = data.projSig ?? null; }
     applySettings(data.settings);
     await restoreLayers(data.layers, legacy);
     return byId(data.selId) ? data.selId : (layers.at(-1)?.id ?? null);
@@ -2288,6 +2324,184 @@ async function cleanupImages() {
     for (const k of await idb.keys()) if (!live.has(k)) await idb.del(k);
   } catch (_) {}
 }
+
+/* ================================================================
+   Project file（.glslfx = project.json と画像を入れた ZIP）
+   ================================================================ */
+const PROJECT_EXT = '.glslfx';
+const PROJECT_TYPES = [{ description: 'GLSL Effect プロジェクト', accept: { 'application/zip': [PROJECT_EXT] } }];
+const project = { name: '無題', sig: null, dirty: false, handle: null };
+const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', bmp: 'image/bmp', avif: 'image/avif' };
+
+function updateProjLabel() {
+  $('#projName').textContent = project.name + (project.dirty ? ' ●' : '');
+  $('#projName').title = project.dirty ? '保存していない変更があります' : '';
+  document.title = `${project.dirty ? '● ' : ''}${project.name} — GLSL Effect Exporter`;
+}
+
+async function readZip(file) {
+  const buf = new Uint8Array(await file.arrayBuffer());
+  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('プロジェクトファイルとして読み込めませんでした');
+  const count = dv.getUint16(eocd + 10, true);
+  let p = dv.getUint32(eocd + 16, true);
+  const dec = new TextDecoder(), out = new Map();
+  for (let i = 0; i < count; i++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) throw new Error('ファイルが壊れています');
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+    const nlen = dv.getUint16(p + 28, true), elen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true);
+    const loff = dv.getUint32(p + 42, true);
+    const name = dec.decode(buf.subarray(p + 46, p + 46 + nlen));
+    p += 46 + nlen + elen + clen;
+    const start = loff + 30 + dv.getUint16(loff + 26, true) + dv.getUint16(loff + 28, true);
+    let data = buf.subarray(start, start + csize);
+    if (method === 8) {
+      data = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+    } else if (method !== 0) throw new Error('未対応の圧縮形式です');
+    if (!name.endsWith('/')) out.set(name, data);
+  }
+  return out;
+}
+
+async function saveProject(saveAs) {
+  try {
+    const st = serializeState();
+    const meta = { format: 'glsl-effect-exporter', version: 1, savedAt: new Date().toISOString(), ...st, selId };
+    const zip = new ZipSink();
+    const images = [];
+    for (const l of layers) {
+      if (l.type !== 'image') continue;
+      const ext = ((l.blob.type || '').split('/')[1] || 'png').replace('jpeg', 'jpg').replace(/[^a-z0-9]/g, '') || 'png';
+      const path = `images/${l.id}.${ext}`;
+      meta.layers.find(d => d.id === l.id).file = path;
+      images.push([path, l.blob]);
+    }
+    await zip.add('project.json', new Blob([JSON.stringify(meta, null, 2)], { type: 'application/json' }));
+    for (const [path, blob] of images) await zip.add(path, blob);
+    const blob = zip.build();
+
+    if (window.showSaveFilePicker) {
+      if (saveAs || !project.handle) {
+        project.handle = await window.showSaveFilePicker({ suggestedName: project.name + PROJECT_EXT, types: PROJECT_TYPES });
+      }
+      const w = await project.handle.createWritable();
+      await w.write(blob);
+      await w.close();
+      project.name = project.handle.name.replace(/\.glslfx$/i, '');
+    } else {
+      if (saveAs || project.name === '無題') {
+        const n = prompt('プロジェクト名', project.name);
+        if (!n || !n.trim()) return;
+        project.name = n.trim().replace(/[\\/:*?"<>|]/g, '_');
+      }
+      download(blob, project.name + PROJECT_EXT);
+    }
+    project.sig = hashStr(JSON.stringify(st));
+    project.dirty = false;
+    updateProjLabel();
+    scheduleSave();
+    setStatus(`「${project.name}」を保存しました`);
+  } catch (e) {
+    if (e.name !== 'AbortError') setStatus('保存できませんでした: ' + e.message);
+  }
+}
+
+function disposeLayers() {
+  for (const l of layers) {
+    if (l.type === 'image') { if (l.tex) gl.deleteTexture(l.tex); if (l.url) URL.revokeObjectURL(l.url); }
+    else if (l.prog) gl.deleteProgram(l.prog);
+  }
+  layers = [];
+  hist.undo = []; hist.redo = []; hist.key = null;
+}
+
+async function loadProjectState(meta, blobs, name, handle) {
+  booting = true;
+  try {
+    disposeLayers();
+    applySettings(DEFAULT_SETTINGS);
+    let first = null;
+    if (meta) {
+      applySettings(meta.settings);
+      await restoreLayers(meta.layers, false, blobs);
+      first = byId(meta.selId) ? meta.selId : (layers.at(-1)?.id ?? null);
+    } else {
+      const p = PRESETS[0];
+      const l = makeShaderLayer({ name: p.name, code: p.code, alphaMode: p.alphaMode, blend: p.blend });
+      compileLayer(l);
+      layers.push(l);
+      first = l.id;
+    }
+    applyBg();
+    onSettingsChange();
+    fitView();
+    elapsed = 0;
+    selectLayer(first);
+  } finally {
+    booting = false;
+  }
+  project.name = name;
+  project.handle = handle || null;
+  project.sig = stateSig();
+  project.dirty = false;
+  updateProjLabel();
+  updateUndoButtons();
+  scheduleSave();
+  cleanupImages();
+}
+
+async function openProject(file, handle) {
+  try {
+    const entries = await readZip(file);
+    const json = entries.get('project.json');
+    if (!json) throw new Error('project.json が見つかりません');
+    const meta = JSON.parse(new TextDecoder().decode(json));
+    if (meta.format !== 'glsl-effect-exporter') throw new Error('このツールのプロジェクトファイルではありません');
+    const blobs = new Map();
+    for (const d of meta.layers || []) {
+      if (d.type !== 'image' || !d.file || !entries.has(d.file)) continue;
+      const ext = d.file.split('.').pop().toLowerCase();
+      blobs.set(d.id, new Blob([entries.get(d.file)], { type: MIME[ext] || 'image/png' }));
+    }
+    await loadProjectState(meta, blobs, file.name.replace(/\.glslfx$/i, ''), handle);
+    setStatus(`「${project.name}」を開きました`);
+  } catch (e) {
+    setStatus('開けませんでした: ' + e.message);
+  }
+}
+
+const confirmDiscard = () => !project.dirty || confirm('保存していない変更があります。破棄してよろしいですか？');
+async function pickAndOpenProject() {
+  if (!confirmDiscard()) return;
+  if (window.showOpenFilePicker) {
+    try {
+      const [h] = await window.showOpenFilePicker({ types: PROJECT_TYPES });
+      await openProject(await h.getFile(), h);
+    } catch (e) { if (e.name !== 'AbortError') setStatus('開けませんでした: ' + e.message); }
+  } else $('#projOpen').click();
+}
+$('#projOpenBtn').addEventListener('click', pickAndOpenProject);
+$('#projOpen').addEventListener('change', e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (f) openProject(f, null);
+});
+$('#projSave').addEventListener('click', () => saveProject(false));
+$('#projSaveAs').addEventListener('click', () => saveProject(true));
+$('#projNew').addEventListener('click', () => {
+  if (!confirmDiscard()) return;
+  loadProjectState(null, null, '無題', null);
+  setStatus('新しいプロジェクトを作りました');
+});
+window.addEventListener('keydown', e => {
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.code === 'KeyS') { e.preventDefault(); e.stopImmediatePropagation(); saveProject(e.shiftKey); }
+  else if (mod && e.code === 'KeyO') { e.preventDefault(); e.stopImmediatePropagation(); pickAndOpenProject(); }
+}, true);
 
 /* ================================================================
    Boot
@@ -2316,6 +2530,8 @@ async function cleanupImages() {
     $('#btnDir').title = 'このブラウザは未対応です（Chrome / Edge で使えます）';
   }
   booting = false;
+  if (project.sig === null) project.sig = stateSig();
+  updateProjLabel();
   scheduleSave();
   cleanupImages();
   requestAnimationFrame(tick);
