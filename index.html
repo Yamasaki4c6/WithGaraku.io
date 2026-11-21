@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WithGaraku — GLSL透過エフェクト書き出し</title>
+<title>GLSL Effect Exporter</title>
 <style>
 :root{
   --bg:#131418; --panel:#1b1d22; --panel2:#22252b; --line:#2e3239;
@@ -21,8 +21,6 @@ button,select,input{font:inherit;color:inherit}
 /* ---------- editor ---------- */
 .editor-col{display:flex;flex-direction:column;border-right:1px solid var(--line);min-height:0;background:var(--panel)}
 .bar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.brand{font-weight:700;letter-spacing:.02em;margin-right:auto}
-.brand small{color:var(--muted);font-weight:400;margin-left:6px}
 .code-wrap{flex:1;display:flex;min-height:0;font:12.5px/1.6 var(--mono)}
 .gutter{padding:10px 8px 10px 0;min-width:44px;text-align:right;color:#5b606b;background:#17191d;
   overflow:hidden;white-space:pre;user-select:none;border-right:1px solid var(--line)}
@@ -40,7 +38,6 @@ textarea#code{flex:1;resize:none;border:0;outline:0;margin:0;padding:10px 12px;b
 .stage canvas{display:block;width:100%;height:100%}
 .bg-checker-dark{background:conic-gradient(#2b2d33 25%,#3a3d44 0 50%,#2b2d33 0 75%,#3a3d44 0) 0 0/20px 20px}
 .bg-checker-light{background:conic-gradient(#cfcfd4 25%,#fff 0 50%,#cfcfd4 0 75%,#fff 0) 0 0/20px 20px}
-.res-badge{position:absolute;right:14px;bottom:10px;color:var(--muted);font:11px var(--mono)}
 
 .panel{border-top:1px solid var(--line);background:var(--panel);padding:10px 12px;display:grid;gap:10px}
 .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -61,12 +58,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .hint{color:var(--muted);font-size:12px}
 .progress{height:6px;background:#121317;border-radius:3px;overflow:hidden;flex:1;min-width:120px}
 .progress > i{display:block;height:100%;width:0;background:var(--accent);transition:width .1s}
-details{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
-details summary{cursor:pointer;color:var(--accent2)}
-details code,details pre{font:12px var(--mono)}
-details pre{background:#121317;border:1px solid var(--line);border-radius:6px;padding:8px;overflow:auto;white-space:pre}
-details table{border-collapse:collapse;font-size:12px}
-details td{padding:2px 10px 2px 0;vertical-align:top}
 .file-label{position:relative;overflow:hidden}
 .file-label input{position:absolute;inset:0;opacity:0;cursor:pointer}
 </style>
@@ -77,7 +68,6 @@ details td{padding:2px 10px 2px 0;vertical-align:top}
   <!-- ================= Editor ================= -->
   <section class="editor-col">
     <div class="bar">
-      <div class="brand">WithGaraku<small>GLSL Effect Exporter</small></div>
       <select id="preset" title="サンプル">
         <option value="">サンプルを読み込む…</option>
       </select>
@@ -97,7 +87,6 @@ details td{padding:2px 10px 2px 0;vertical-align:top}
   <section class="right-col">
     <div class="preview" id="preview">
       <div class="stage bg-checker-dark" id="stage"><canvas id="cv"></canvas></div>
-      <div class="res-badge" id="resBadge"></div>
     </div>
 
     <div class="panel">
@@ -179,30 +168,6 @@ details td{padding:2px 10px 2px 0;vertical-align:top}
         <span class="hint" id="status"></span>
       </div>
 
-      <details>
-        <summary>使い方・メモ</summary>
-        <p>Shadertoy と同じ <code>mainImage(out vec4 fragColor, in vec2 fragCoord)</code> 形式で書けます。<code>fragColor</code> のアルファがそのまま PNG の透過になります。</p>
-        <table>
-          <tr><td><code>iResolution</code></td><td>出力解像度（px）。プレビュー縮小中はその解像度</td></tr>
-          <tr><td><code>iTime</code> / <code>iTimeDelta</code></td><td>秒。書き出し時は <code>開始 + i / fps</code> で正確に進みます</td></tr>
-          <tr><td><code>iFrame</code> / <code>iFrameRate</code></td><td>フレーム番号 / fps</td></tr>
-          <tr><td><code>iDuration</code></td><td>「長さ」の秒数（独自）。<code>fract(iTime / iDuration)</code> でループが綺麗に繋がります</td></tr>
-          <tr><td><code>iMouse</code>, <code>iDate</code></td><td>Shadertoy 互換</td></tr>
-          <tr><td><code>iChannel0</code>, <code>iChannelResolution[0]</code></td><td>読み込んだ画像（左下原点）。未設定なら透明</td></tr>
-        </table>
-        <p><b>アルファの扱い</b><br>
-        ・<b>straight</b>：色とアルファを別々に書く普通の書き方。煙・墨・影など「不透明感のあるもの」向け。<br>
-        ・<b>premultiplied</b>：色にすでにアルファが掛かっている書き方。光を足し算で重ねていくシェーダーはこちらが自然です。<br>
-        ・<b>黒背景で書き出す</b>：アルファを使わず黒に合成した PNG を出力。クリスタで「加算（発光）」「スクリーン」にして乗せる用。発光・火花・ブルーム向け。</p>
-        <p><b>連番 → 動画</b>（ffmpeg）</p>
-<pre># ProRes 4444（透過あり・編集ソフト向け）
-ffmpeg -framerate 30 -i frame_%04d.png -c:v prores_ks -profile:v 4444 -pix_fmt yuva444p10le out.mov
-# WebM VP9（透過あり・Web向け）
-ffmpeg -framerate 30 -i frame_%04d.png -c:v libvpx-vp9 -pix_fmt yuva420p -b:v 0 -crf 20 out.webm
-# APNG（透過あり・ループ画像）
-ffmpeg -framerate 30 -i frame_%04d.png -plays 0 out.apng</pre>
-        <p class="hint">Ctrl/⌘+Enter でコンパイル。コードと設定はこのブラウザに自動保存されます。Shadertoy のマルチパス（Buffer A など）には対応していません。</p>
-      </details>
     </div>
   </section>
 </div>
@@ -523,7 +488,6 @@ function fitStage() {
   const stage = $('#stage');
   stage.style.width = Math.max(1, Math.floor(s.w * k)) + 'px';
   stage.style.height = Math.max(1, Math.floor(s.h * k)) + 'px';
-  $('#resBadge').textContent = `出力 ${s.w}×${s.h}  /  表示 ${canvas.width}×${canvas.height}`;
 }
 
 function updateFrameInfo() {
