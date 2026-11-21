@@ -8,40 +8,80 @@
 :root{
   --bg:#131418; --panel:#1b1d22; --panel2:#22252b; --line:#2e3239;
   --text:#e8e8eb; --muted:#9296a0; --accent:#f2b45c; --accent2:#7cc7ff;
-  --err:#ff6b6b; --ok:#7bd88f;
+  --err:#ff6b6b; --ok:#7bd88f; --sel:#2a303b;
   --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Noto Sans Mono", monospace;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
   font:13px/1.5 system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
 button,select,input{font:inherit;color:inherit}
-.app{display:grid;grid-template-columns:minmax(380px,44%) 1fr;height:100vh}
-@media (max-width:900px){.app{grid-template-columns:1fr;height:auto}.editor-col{height:70vh}}
+.app{display:grid;grid-template-columns:minmax(360px,40%) 1fr;height:100vh}
+@media (max-width:1000px){.app{grid-template-columns:1fr;height:auto}.editor-col{height:65vh}}
 
 /* ---------- editor ---------- */
 .editor-col{display:flex;flex-direction:column;border-right:1px solid var(--line);min-height:0;background:var(--panel)}
 .bar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.editing{color:var(--muted);font-size:12px;margin-left:auto;max-width:12em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .code-wrap{flex:1;display:flex;min-height:0;font:12.5px/1.6 var(--mono)}
 .gutter{padding:10px 8px 10px 0;min-width:44px;text-align:right;color:#5b606b;background:#17191d;
   overflow:hidden;white-space:pre;user-select:none;border-right:1px solid var(--line)}
 .gutter .e{color:#fff;background:var(--err);border-radius:3px;padding:0 3px}
 textarea#code{flex:1;resize:none;border:0;outline:0;margin:0;padding:10px 12px;background:transparent;color:var(--text);
   font:inherit;white-space:pre;overflow:auto;tab-size:2}
-.log{max-height:28%;overflow:auto;border-top:1px solid var(--line);padding:6px 10px;font:12px/1.5 var(--mono);white-space:pre-wrap}
-.log.ok{color:var(--ok)} .log.err{color:var(--err)}
+textarea#code:disabled{color:var(--muted)}
+.log{max-height:28%;overflow:auto;border-top:1px solid var(--line);padding:6px 10px;font:12px/1.5 var(--mono);white-space:pre-wrap;min-height:2.2em}
+.log.ok{color:var(--ok)} .log.err{color:var(--err)} .log.info{color:var(--muted)}
 
 /* ---------- right column ---------- */
 .right-col{display:flex;flex-direction:column;min-height:0;min-width:0}
-.preview{flex:1;min-height:280px;display:flex;align-items:center;justify-content:center;padding:16px;position:relative}
-.stage{position:relative;isolation:isolate;box-shadow:0 0 0 1px var(--line),0 8px 30px #0008;
-  background-position:center;background-repeat:no-repeat}
-.stage canvas{display:block;width:100%;height:100%}
+.stage-row{flex:1;display:flex;min-height:300px}
+.preview{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;padding:16px;position:relative}
+.preview.dropping{outline:2px dashed var(--accent);outline-offset:-8px}
+.stage{position:relative;box-shadow:0 0 0 1px var(--line),0 8px 30px #0008}
+.stage canvas{display:block;width:100%;height:100%;touch-action:none}
 .bg-checker-dark{background:conic-gradient(#2b2d33 25%,#3a3d44 0 50%,#2b2d33 0 75%,#3a3d44 0) 0 0/20px 20px}
 .bg-checker-light{background:conic-gradient(#cfcfd4 25%,#fff 0 50%,#cfcfd4 0 75%,#fff 0) 0 0/20px 20px}
 
+/* ---------- layers ---------- */
+.layers{width:270px;flex:none;display:flex;flex-direction:column;border-left:1px solid var(--line);background:var(--panel);min-height:0}
+.layers-head{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line)}
+.layers-head b{margin-right:auto;font-weight:600}
+.layers-head button{padding:2px 8px}
+#layerList{list-style:none;margin:0;padding:0;overflow:auto;flex:1;min-height:80px}
+#layerList li{display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--line);cursor:pointer;
+  border-left:3px solid transparent;user-select:none}
+#layerList li:hover{background:#20232a}
+#layerList li.sel{background:var(--sel);border-left-color:var(--accent)}
+#layerList li.off .lname,#layerList li.off .thumb{opacity:.4}
+#layerList li.drop-above{box-shadow:inset 0 2px 0 var(--accent)}
+#layerList li.drop-below{box-shadow:inset 0 -2px 0 var(--accent)}
+#layerList li.empty{color:var(--muted);cursor:default;font-size:12px;line-height:1.7;border:0;padding:14px 12px}
+.eye{background:none;border:0;padding:2px;width:22px;height:22px;display:grid;place-items:center;color:var(--muted)}
+.eye:hover{color:var(--text)}
+.eye svg{width:16px;height:16px}
+.thumb{width:38px;height:26px;flex:none;border-radius:4px;display:grid;place-items:center;overflow:hidden;
+  background:conic-gradient(#2b2d33 25%,#3a3d44 0 50%,#2b2d33 0 75%,#3a3d44 0) 0 0/8px 8px}
+.thumb img{width:100%;height:100%;object-fit:contain}
+.thumb.glsl{background:#2a2333;color:#d6b4ff;font:600 9.5px var(--mono);letter-spacing:.04em}
+.lname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lmeta{color:var(--muted);font-size:11px}
+.errdot{width:8px;height:8px;border-radius:50%;background:var(--err);flex:none}
+.props{border-top:1px solid var(--line);padding:8px 10px;display:grid;grid-template-columns:minmax(0,1fr);gap:7px}
+.props[hidden]{display:none}
+.prow{display:flex;align-items:center;gap:6px;min-width:0}
+.prow > span:first-child{color:var(--muted);width:4.6em;flex:none;font-size:12px}
+.prow input[type=range]{min-width:40px;flex:1}
+.prow input[type=number]{width:3.9em;flex:none}
+.prow select{flex:1;min-width:0}
+.prow.btns{flex-wrap:wrap}
+#pX,#pY{width:4.8em}
+.prow.btns button{font-size:12px;padding:3px 8px}
+
+/* ---------- bottom panel ---------- */
 .panel{border-top:1px solid var(--line);background:var(--panel);padding:10px 12px;display:grid;gap:10px}
 .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.row > .label{color:var(--muted);min-width:5.5em}
+.row > .label{color:var(--muted);min-width:4.5em}
 .group{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px 8px}
 .group span{color:var(--muted)}
 input[type=number],input[type=text],select{background:#121317;border:1px solid var(--line);border-radius:6px;padding:3px 6px;outline:0}
@@ -68,13 +108,14 @@ button:disabled{opacity:.45;cursor:not-allowed}
   <!-- ================= Editor ================= -->
   <section class="editor-col">
     <div class="bar">
-      <select id="preset" title="サンプル">
+      <select id="preset" title="選択中のGLSLレイヤーにサンプルを読み込みます">
         <option value="">サンプルを読み込む…</option>
       </select>
       <button id="btnCompile" title="Ctrl/⌘ + Enter">コンパイル</button>
       <label class="hint"><input type="checkbox" id="autoCompile" checked> 自動</label>
       <button id="btnSave" title=".glslとして保存">保存</button>
       <button class="file-label" title=".glsl / .frag を開く">開く<input type="file" id="fileOpen" accept=".glsl,.frag,.fs,.txt"></button>
+      <span class="editing" id="editing"></span>
     </div>
     <div class="code-wrap">
       <div class="gutter" id="gutter">1</div>
@@ -83,22 +124,61 @@ button:disabled{opacity:.45;cursor:not-allowed}
     <div class="log" id="log"></div>
   </section>
 
-  <!-- ================= Preview & Export ================= -->
+  <!-- ================= Preview / Layers / Export ================= -->
   <section class="right-col">
-    <div class="preview" id="preview">
-      <div class="stage bg-checker-dark" id="stage"><canvas id="cv"></canvas></div>
+    <div class="stage-row">
+      <div class="preview" id="preview">
+        <div class="stage bg-checker-dark" id="stage"><canvas id="cv"></canvas></div>
+      </div>
+
+      <aside class="layers">
+        <div class="layers-head">
+          <b>レイヤー</b>
+          <button id="addShader" title="GLSLレイヤーを追加">＋GLSL</button>
+          <button class="file-label" title="画像レイヤーを追加（ドロップ・貼り付けでも可）">＋画像<input type="file" id="addImage" accept="image/*" multiple></button>
+        </div>
+        <ul id="layerList"></ul>
+        <div class="props" id="props" hidden>
+          <div class="prow"><span>不透明度</span>
+            <input type="range" id="pOpacity" min="0" max="100" step="1">
+            <input type="number" id="pOpacityN" min="0" max="100" step="1"></div>
+          <div class="prow"><span>合成</span>
+            <select id="pBlend">
+              <option value="normal">通常</option>
+              <option value="add">加算（発光）</option>
+              <option value="screen">スクリーン</option>
+              <option value="multiply">乗算</option>
+              <option value="replace">置き換え</option>
+            </select></div>
+          <div class="prow" data-for="shader"><span>アルファ</span>
+            <select id="pAlpha">
+              <option value="0">straight — vec4(col, a)</option>
+              <option value="1">premultiplied — vec4(col*a, a)</option>
+            </select></div>
+          <div class="prow" data-for="image"><span>位置 %</span>
+            X<input type="number" id="pX" step="0.5"> Y<input type="number" id="pY" step="0.5"></div>
+          <div class="prow" data-for="image" title="100% = キャンバスに収まる大きさ"><span>拡大 %</span>
+            <input type="range" id="pScale" min="5" max="400" step="1">
+            <input type="number" id="pScaleN" min="1" max="2000" step="1"></div>
+          <div class="prow btns" data-for="image">
+            <button id="pReset">中央・100%</button>
+            <button id="pFitOut" title="出力解像度をこの画像と同じにします">出力サイズを画像に合わせる</button>
+          </div>
+          <div class="prow btns">
+            <button id="dupLayer">複製</button>
+            <button id="delLayer">削除</button>
+          </div>
+        </div>
+      </aside>
     </div>
 
     <div class="panel">
-      <!-- playback -->
       <div class="row">
         <button id="btnPlay" style="min-width:4.5em">一時停止</button>
         <input type="range" id="scrub" min="0" max="2" step="0.001" value="0">
         <span class="time" id="timeText">0.000s / f0</span>
         <label class="hint"><input type="checkbox" id="loop" checked> ループ</label>
       </div>
-
-      <!-- preview options -->
       <div class="row">
         <span class="label">プレビュー</span>
         <div class="group"><span>背景</span>
@@ -108,18 +188,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
             <option value="black">黒</option>
             <option value="white">白</option>
             <option value="color">単色</option>
-            <option value="image">画像</option>
           </select>
           <input type="color" id="bgColor" value="#6b7a99" hidden>
-          <button class="file-label" id="bgImgBtn" hidden>画像を選ぶ<input type="file" id="bgImg" accept="image/*"></button>
-          <button id="fitToImg" hidden title="出力解像度を背景画像と同じにする">画像サイズに合わせる</button>
-        </div>
-        <div class="group"><span>合成</span>
-          <select id="blend" title="プレビュー表示だけに効きます">
-            <option value="normal">通常</option>
-            <option value="screen">スクリーン</option>
-            <option value="plus-lighter">加算（発光）</option>
-          </select>
         </div>
         <div class="group"><span>表示解像度</span>
           <select id="pscale">
@@ -128,13 +198,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
             <option value="0.25">25%</option>
           </select>
         </div>
-        <div class="group"><span>iChannel0</span>
-          <button class="file-label" id="ch0Btn">画像…<input type="file" id="ch0" accept="image/*"></button>
-          <button id="ch0Clear" hidden>解除</button>
-        </div>
       </div>
-
-      <!-- output -->
       <div class="row">
         <span class="label">出力</span>
         <div class="group"><span>W</span><input type="number" id="w" value="1920" min="1" max="8192">
@@ -142,23 +206,12 @@ button:disabled{opacity:.45;cursor:not-allowed}
         <div class="group"><span>fps</span><input type="number" id="fps" value="30" min="1" max="240"></div>
         <div class="group"><span>長さ(秒)</span><input type="number" id="dur" value="2" min="0.01" step="0.1"></div>
         <div class="group"><span>開始</span><input type="number" id="start" value="0" step="0.1"></div>
+        <label class="group" title="アルファを捨て、黒背景に合成した不透明PNGを書き出します（加算・スクリーン用）">
+          <input type="checkbox" id="blackBg"> 黒背景
+        </label>
+        <div class="group"><span>ファイル名</span><input type="text" id="prefix" value="frame_" style="width:7em"></div>
         <span class="hint" id="frameInfo"></span>
       </div>
-      <div class="row">
-        <span class="label">アルファ</span>
-        <div class="group">
-          <select id="alphaMode">
-            <option value="0">straight — vec4(col, a)</option>
-            <option value="1">premultiplied — vec4(col*a, a)</option>
-          </select>
-        </div>
-        <label class="group" title="アルファを捨て、黒背景に合成した不透明PNGを書き出します（加算・スクリーン用）">
-          <input type="checkbox" id="blackBg"> 黒背景で書き出す（加算／スクリーン用）
-        </label>
-        <div class="group"><span>ファイル名</span><input type="text" id="prefix" value="frame_" style="width:8em"></div>
-      </div>
-
-      <!-- export -->
       <div class="row">
         <button id="btnStill">現在のフレームをPNG</button>
         <button class="primary" id="btnZip">連番をZIPで書き出し</button>
@@ -167,7 +220,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
         <div class="progress"><i id="bar"></i></div>
         <span class="hint" id="status"></span>
       </div>
-
     </div>
   </section>
 </div>
@@ -181,7 +233,7 @@ const $ = s => document.querySelector(s);
    ================================================================ */
 const PRESETS = [
 {
-  name: '衝撃波リング（straight）', alphaMode: 0, blackBg: false,
+  name: '衝撃波リング', alphaMode: 0, blend: 'normal',
   code: `// 衝撃波リング — straight アルファ: fragColor = vec4(色, 不透明度)
 // iDuration（長さ）で1回広がって消えます
 
@@ -207,9 +259,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 }
 `},
 {
-  name: '光の粒（premultiplied＋黒背景）', alphaMode: 1, blackBg: true,
+  name: '光の粒', alphaMode: 1, blend: 'add',
   code: `// 光の粒 — 光を足し算で重ねるので premultiplied で書いています
-// 「黒背景で書き出す」にして、クリスタで加算（発光）／スクリーン合成がおすすめ
+// レイヤーの合成を「加算（発光）」にすると下の絵を明るく照らします
 
 float hash(float n) { return fract(sin(n) * 43758.5453); }
 
@@ -243,7 +295,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 }
 `},
 {
-  name: '墨・煙（straight）', alphaMode: 0, blackBg: false, bg: 'checker-light',
+  name: '墨・煙', alphaMode: 0, blend: 'normal',
   code: `// 墨・煙 — 不透明感のあるものは straight アルファで
 // ノイズ空間を円周上で動かしてループさせています
 
@@ -284,8 +336,39 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     vec3 ink = mix(vec3(0.04, 0.035, 0.07), vec3(0.32, 0.22, 0.48), smoothstep(0.5, 0.9, n));
     fragColor = vec4(ink, clamp(density * 0.95, 0.0, 1.0));
 }
+`},
+{
+  name: '陽炎（下を歪ませる）', alphaMode: 0, blend: 'replace',
+  code: `// 陽炎 — iChannel0 はこのレイヤーより下の合成結果
+// 合成を「置き換え」にすると、下のレイヤーが歪んだ状態に置き換わります
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
+{
+    vec2 uv = fragCoord / iResolution.xy;
+    float ph = 6.2831853 * iTime / iDuration;
+
+    // 上にいくほど強く揺らぐ
+    float strength = 0.006 * smoothstep(0.1, 0.9, uv.y);
+    vec2 offs = vec2(sin(uv.y * 45.0 - ph * 2.0),
+                     cos(uv.x * 30.0 + ph * 3.0)) * strength;
+
+    fragColor = texture(iChannel0, uv + offs);
+}
 `}
 ];
+
+const NEW_SHADER_CODE = `// iChannel0 = このレイヤーより下の合成結果
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
+{
+    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
+    float a = smoothstep(0.3, 0.0, length(uv));
+    fragColor = vec4(1.0, 0.8, 0.5, a);
+}
+`;
+
+const BLEND_ID = { normal: 0, add: 1, screen: 2, multiply: 3, replace: 4 };
+const BLEND_LABEL = { normal: '通常', add: '加算', screen: 'スクリーン', multiply: '乗算', replace: '置換' };
 
 /* ================================================================
    WebGL setup
@@ -293,10 +376,11 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 const canvas = $('#cv');
 const gl = canvas.getContext('webgl2', {
   alpha: true,
-  premultipliedAlpha: false,   // straight のまま書き出すので低アルファ部の精度が落ちない
+  premultipliedAlpha: false,   // straight のまま書き出す
   preserveDrawingBuffer: true, // toBlob で読み出すため
   antialias: false,
 });
+let hasFloat = false;
 
 const VERT = `#version 300 es
 void main() {
@@ -304,10 +388,77 @@ void main() {
   gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
 }`;
 
-const FRAG_HEAD = `#version 300 es
+const FS_PRE = `#version 300 es
 precision highp float;
 precision highp int;
-uniform vec3  iResolution;
+`;
+
+// 画像レイヤー（テクスチャは premultiplied でアップロード済み）
+const FS_IMAGE = FS_PRE + `
+uniform sampler2D uTex;
+uniform vec2 uSize, uImgSize, uPos;
+uniform float uScale;
+out vec4 o;
+void main() {
+  float fit = min(uSize.x / uImgSize.x, uSize.y / uImgSize.y) * uScale;
+  vec2 disp = uImgSize * fit;
+  vec2 center = vec2(uPos.x, 1.0 - uPos.y) * uSize;
+  vec2 uv = (gl_FragCoord.xy - center) / disp + 0.5;
+  o = (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) ? vec4(0.0) : texture(uTex, uv);
+}`;
+
+// レイヤー合成（すべて premultiplied で計算）
+const FS_COMP = FS_PRE + `
+uniform sampler2D uBase, uLayer;
+uniform float uOpacity;
+uniform int uMode;
+out vec4 o;
+void main() {
+  ivec2 p = ivec2(gl_FragCoord.xy);
+  vec4 b = texelFetch(uBase, p, 0);
+  vec4 l = texelFetch(uLayer, p, 0);
+  vec4 s = l * uOpacity;
+  vec4 r;
+  if (uMode == 0) {               // 通常
+    r = s + b * (1.0 - s.a);
+  } else if (uMode == 1) {        // 加算（発光）
+    r = s + b;
+    r.a = min(r.a, 1.0);
+  } else if (uMode == 2) {        // スクリーン
+    vec4 sc = clamp(s, 0.0, 1.0), bc = clamp(b, 0.0, 1.0);
+    r = sc + bc - sc * bc;
+  } else if (uMode == 3) {        // 乗算
+    vec4 sc = clamp(s, 0.0, 1.0), bc = clamp(b, 0.0, 1.0);
+    r.rgb = sc.rgb * (1.0 - bc.a) + bc.rgb * (1.0 - sc.a) + sc.rgb * bc.rgb;
+    r.a = sc.a + bc.a - sc.a * bc.a;
+  } else {                        // 置き換え
+    r = mix(b, l, uOpacity);
+  }
+  o = r;
+}`;
+
+// iChannel0 用に premultiplied → straight
+const FS_UNPREMUL = FS_PRE + `
+uniform sampler2D uSrc;
+out vec4 o;
+void main() {
+  vec4 c = texelFetch(uSrc, ivec2(gl_FragCoord.xy), 0);
+  o = c.a > 0.0 ? vec4(min(c.rgb / c.a, 1.0), min(c.a, 1.0)) : vec4(0.0);
+}`;
+
+// 最終出力（キャンバスは straight アルファ）
+const FS_FINAL = FS_PRE + `
+uniform sampler2D uSrc;
+uniform int uBlack;
+out vec4 o;
+void main() {
+  vec4 c = max(texelFetch(uSrc, ivec2(gl_FragCoord.xy), 0), 0.0);
+  c.a = min(c.a, 1.0);
+  if (uBlack == 1) o = vec4(min(c.rgb, 1.0), 1.0);
+  else o = c.a > 0.0 ? vec4(min(c.rgb / c.a, 1.0), c.a) : vec4(0.0);
+}`;
+
+const USER_HEAD = FS_PRE + `uniform vec3  iResolution;
 uniform float iTime;
 uniform float iTimeDelta;
 uniform int   iFrame;
@@ -318,60 +469,534 @@ uniform float iDuration;
 uniform sampler2D iChannel0;
 uniform vec3  iChannelResolution[4];
 uniform int   _alphaMode;
-uniform int   _blackBg;
 out vec4 _outColor;
 #line 1
 `;
-
-const FRAG_TAIL = `
+const USER_TAIL = `
 void main() {
   vec4 c = vec4(0.0);
   mainImage(c, gl_FragCoord.xy);
   c = max(c, 0.0);
   c.a = min(c.a, 1.0);
-  vec3 premul = (_alphaMode == 0) ? c.rgb * c.a : c.rgb;
-  if (_blackBg == 1) {
-    _outColor = vec4(min(premul, 1.0), 1.0);
-  } else if (_alphaMode == 0) {
-    _outColor = vec4(min(c.rgb, 1.0), c.a);
-  } else {
-    vec3 straight = c.a > 0.0 ? min(c.rgb, vec3(c.a)) / c.a : vec3(0.0);
-    _outColor = vec4(straight, c.a);
-  }
+  _outColor = (_alphaMode == 0) ? vec4(c.rgb * c.a, c.a) : c;
 }
 `;
+const USER_UNIFORMS = ['iResolution','iTime','iTimeDelta','iFrame','iFrameRate','iMouse','iDate',
+  'iDuration','iChannel0','iChannelResolution','_alphaMode'];
 
-const UNIFORMS = ['iResolution','iTime','iTimeDelta','iFrame','iFrameRate','iMouse','iDate',
-  'iDuration','iChannel0','iChannelResolution','_alphaMode','_blackBg'];
+let vsObj, vao, P = {};
 
-let prog = null, U = {}, vsObj = null, vao = null, tex0 = null, tex0Size = [1, 1];
+function buildProgram(fsSrc) {
+  const fs = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(fs, fsSrc);
+  gl.compileShader(fs);
+  if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+    const log = gl.getShaderInfoLog(fs) || 'compile error';
+    gl.deleteShader(fs);
+    return { error: log };
+  }
+  const p = gl.createProgram();
+  gl.attachShader(p, vsObj);
+  gl.attachShader(p, fs);
+  gl.linkProgram(p);
+  gl.deleteShader(fs);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+    const log = gl.getProgramInfoLog(p) || 'link error';
+    gl.deleteProgram(p);
+    return { error: log };
+  }
+  return { prog: p };
+}
+function fixedProgram(src, names) {
+  const r = buildProgram(src);
+  if (r.error) throw new Error(r.error);
+  const u = {};
+  for (const n of names) u[n] = gl.getUniformLocation(r.prog, n);
+  return { prog: r.prog, u };
+}
 
 function initGL() {
+  hasFloat = !!gl.getExtension('EXT_color_buffer_float');
   vsObj = gl.createShader(gl.VERTEX_SHADER);
   gl.shaderSource(vsObj, VERT);
   gl.compileShader(vsObj);
   vao = gl.createVertexArray();
-  tex0 = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, tex0);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
+  P.image = fixedProgram(FS_IMAGE, ['uTex', 'uSize', 'uImgSize', 'uPos', 'uScale']);
+  P.comp = fixedProgram(FS_COMP, ['uBase', 'uLayer', 'uOpacity', 'uMode']);
+  P.unpremul = fixedProgram(FS_UNPREMUL, ['uSrc']);
+  P.final = fixedProgram(FS_FINAL, ['uSrc', 'uBlack']);
   gl.disable(gl.BLEND);
   gl.disable(gl.DEPTH_TEST);
 }
+
+/* ---------- render targets ---------- */
+let RT = null;
+function makeTarget(w, h) {
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  if (hasFloat) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, w, h, 0, gl.RGBA, gl.HALF_FLOAT, null);
+  else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  const fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  return { tex, fb, ok };
+}
+function freeTarget(t) { gl.deleteTexture(t.tex); gl.deleteFramebuffer(t.fb); }
+function ensureTargets(w, h) {
+  if (RT && RT.w === w && RT.h === h) return;
+  if (RT) [RT.acc[0], RT.acc[1], RT.layer, RT.ch].forEach(freeTarget);
+  const mk = () => makeTarget(w, h);
+  RT = { w, h, acc: [mk(), mk()], layer: mk(), ch: mk() };
+  if (hasFloat && ![RT.acc[0], RT.acc[1], RT.layer, RT.ch].every(t => t.ok)) {
+    hasFloat = false;          // float に描けない環境は 8bit で作り直す
+    RT.w = -1;
+    ensureTargets(w, h);
+  }
+}
+
+function bindTex(unit, tex) {
+  gl.activeTexture(gl.TEXTURE0 + unit);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+}
+function drawTo(fb) {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.bindVertexArray(vao);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+function clearTarget(t) {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, t.fb);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+}
+
+/* ================================================================
+   Layers
+   ================================================================ */
+let layers = [];          // index 0 = 一番下
+let selId = null;
+let idCounter = 0;
+const newId = () => 'L' + Date.now().toString(36) + (idCounter++).toString(36);
+const sel = () => layers.find(l => l.id === selId) || null;
+const byId = id => layers.find(l => l.id === id) || null;
+
+function makeShaderLayer(opts = {}) {
+  const n = layers.filter(l => l.type === 'shader').length + 1;
+  return {
+    id: opts.id || newId(), type: 'shader', name: opts.name || `GLSL ${n}`,
+    visible: opts.visible ?? true, opacity: opts.opacity ?? 1, blend: opts.blend || 'normal',
+    code: opts.code ?? NEW_SHADER_CODE, alphaMode: opts.alphaMode ?? 0,
+    prog: null, U: {}, error: null, errorLines: new Set(),
+  };
+}
+function makeImageLayer(opts) {
+  return {
+    id: opts.id || newId(), type: 'image', name: opts.name || '画像',
+    visible: opts.visible ?? true, opacity: opts.opacity ?? 1, blend: opts.blend || 'normal',
+    x: opts.x ?? 0.5, y: opts.y ?? 0.5, scale: opts.scale ?? 1,
+    blob: opts.blob, url: null, tex: null, iw: 1, ih: 1,
+  };
+}
+
+function insertLayer(l) {
+  const cur = sel();
+  const i = cur ? layers.indexOf(cur) + 1 : layers.length;
+  layers.splice(i, 0, l);
+  selectLayer(l.id);
+  dirty = true;
+  scheduleSave();
+}
+
+function removeLayer(l) {
+  const i = layers.indexOf(l);
+  if (i < 0) return;
+  layers.splice(i, 1);
+  if (l.type === 'shader' && l.prog) gl.deleteProgram(l.prog);
+  if (l.type === 'image') {
+    if (l.tex) gl.deleteTexture(l.tex);
+    if (l.url) URL.revokeObjectURL(l.url);
+    idb.del(l.id).catch(() => {});
+  }
+  const next = layers[Math.min(i, layers.length - 1)] || null;
+  selectLayer(next ? next.id : null);
+  dirty = true;
+  scheduleSave();
+}
+
+async function duplicateLayer(l) {
+  if (!l) return;
+  let c;
+  if (l.type === 'shader') {
+    c = makeShaderLayer({ ...l, id: null, name: l.name + ' コピー' });
+    compileLayer(c);
+  } else {
+    c = makeImageLayer({ ...l, id: null, name: l.name + ' コピー' });
+    await loadImageLayer(c);
+    idb.put(c.id, c.blob).catch(() => {});
+  }
+  insertLayer(c);
+}
+
+function moveLayer(dragId, targetId, above) {
+  const d = byId(dragId);
+  if (!d || dragId === targetId) return;
+  layers.splice(layers.indexOf(d), 1);
+  const t = layers.indexOf(byId(targetId));
+  layers.splice(above ? t + 1 : t, 0, d);
+  renderLayerList();
+  dirty = true;
+  scheduleSave();
+}
+
+/* ---------- image layers ---------- */
+async function loadImageLayer(l) {
+  const url = URL.createObjectURL(l.blob);
+  const img = new Image();
+  img.src = url;
+  await img.decode();
+  l.iw = img.naturalWidth;
+  l.ih = img.naturalHeight;
+  let src = img;
+  const max = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+  if (l.iw > max || l.ih > max) {
+    const k = max / Math.max(l.iw, l.ih);
+    const c = document.createElement('canvas');
+    c.width = Math.floor(l.iw * k); c.height = Math.floor(l.ih * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    src = c;
+  }
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  l.tex = tex;
+  l.url = url;
+}
+
+async function addImageFiles(files) {
+  const imgs = [...files].filter(f => f.type.startsWith('image/'));
+  for (const f of imgs) {
+    const l = makeImageLayer({ name: f.name || '貼り付け画像', blob: f });
+    try {
+      await loadImageLayer(l);
+    } catch (e) {
+      setStatus(`${f.name} を読み込めませんでした`);
+      continue;
+    }
+    insertLayer(l);
+    idb.put(l.id, f).catch(() => {});
+  }
+}
+
+/* ---------- shader layers ---------- */
+function compileLayer(l) {
+  const src = l.code.replace(/^[ \t]*#version.*$/gm, '');
+  const userLines = src.split('\n').length;
+  const r = buildProgram(USER_HEAD + src + USER_TAIL);
+  if (r.error) {
+    const { text, lines } = parseErrors(r.error, userLines);
+    l.error = text;
+    l.errorLines = lines;
+  } else {
+    if (l.prog) gl.deleteProgram(l.prog);
+    l.prog = r.prog;
+    l.U = {};
+    for (const n of USER_UNIFORMS) l.U[n] = gl.getUniformLocation(r.prog, n);
+    l.error = null;
+    l.errorLines = new Set();
+  }
+  if (l.id === selId) { updateGutter(); showLayerLog(); }
+  renderLayerList();
+  dirty = true;
+  return !l.error;
+}
+
+function parseErrors(info, userLines) {
+  const lines = new Set(), out = [];
+  for (const raw of info.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    const m = line.match(/^(?:ERROR|WARNING):\s*\d+:(\d+):\s*(.*)$/);
+    if (m) {
+      const ln = +m[1];
+      if (ln >= 1 && ln <= userLines) { lines.add(ln); out.push(`${ln}行目: ${m[2]}`); }
+      else out.push(`(末尾) ${m[2]}　← mainImage が無い・括弧の閉じ忘れなど`);
+    } else out.push(line);
+  }
+  return { text: out.join('\n'), lines };
+}
+
+/* ================================================================
+   Layer panel UI
+   ================================================================ */
+const EYE_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l18 18M10.6 5.1A10.6 10.6 0 0 1 12 5c7 0 11 7 11 7a18 18 0 0 1-3.2 4M6.6 6.6C3 8.6 1 12 1 12s4 7 11 7a10 10 0 0 0 5.4-1.6"/></svg>';
+
+function renderLayerList() {
+  const ul = $('#layerList');
+  ul.innerHTML = '';
+  if (!layers.length) {
+    ul.innerHTML = '<li class="empty">レイヤーがありません。<br>＋GLSL／＋画像 で追加できます。<br>画像はプレビューへのドロップや<br>Ctrl/⌘+V の貼り付けでも追加できます。</li>';
+    return;
+  }
+  for (let i = layers.length - 1; i >= 0; i--) {
+    const l = layers[i];
+    const li = document.createElement('li');
+    li.draggable = true;
+    if (l.id === selId) li.classList.add('sel');
+    if (!l.visible) li.classList.add('off');
+
+    const eye = document.createElement('button');
+    eye.className = 'eye';
+    eye.title = '表示／非表示';
+    eye.innerHTML = l.visible ? EYE_ON : EYE_OFF;
+    eye.addEventListener('click', e => {
+      e.stopPropagation();
+      l.visible = !l.visible;
+      renderLayerList();
+      dirty = true;
+      scheduleSave();
+    });
+
+    const thumb = document.createElement('div');
+    if (l.type === 'image') {
+      thumb.className = 'thumb';
+      const im = document.createElement('img');
+      im.src = l.url;
+      im.draggable = false;
+      thumb.appendChild(im);
+    } else {
+      thumb.className = 'thumb glsl';
+      thumb.textContent = 'GLSL';
+    }
+
+    const name = document.createElement('div');
+    name.className = 'lname';
+    name.textContent = l.name;
+    name.title = 'ダブルクリックで名前を変更';
+    const meta = document.createElement('div');
+    meta.className = 'lmeta';
+    const bits = [];
+    if (l.blend !== 'normal') bits.push(BLEND_LABEL[l.blend]);
+    if (l.opacity < 1) bits.push(Math.round(l.opacity * 100) + '%');
+    meta.textContent = bits.join(' · ');
+    const nameBox = document.createElement('div');
+    nameBox.style.cssText = 'flex:1;min-width:0';
+    nameBox.append(name, meta);
+
+    li.append(eye, thumb, nameBox);
+    if (l.type === 'shader' && l.error) {
+      const d = document.createElement('span');
+      d.className = 'errdot';
+      d.title = 'コンパイルエラー';
+      li.appendChild(d);
+    }
+
+    li.addEventListener('click', () => selectLayer(l.id));
+    li.addEventListener('dblclick', () => {
+      const n = prompt('レイヤー名', l.name);
+      if (n && n.trim()) { l.name = n.trim(); renderLayerList(); updateEditingLabel(); scheduleSave(); }
+    });
+    li.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/x-layer', l.id);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    li.addEventListener('dragover', e => {
+      if (!e.dataTransfer.types.includes('text/x-layer')) return;
+      e.preventDefault();
+      const r = li.getBoundingClientRect();
+      const above = e.clientY < r.top + r.height / 2;
+      li.classList.toggle('drop-above', above);
+      li.classList.toggle('drop-below', !above);
+    });
+    li.addEventListener('dragleave', () => li.classList.remove('drop-above', 'drop-below'));
+    li.addEventListener('drop', e => {
+      const id = e.dataTransfer.getData('text/x-layer');
+      if (!id) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const above = li.classList.contains('drop-above');
+      li.classList.remove('drop-above', 'drop-below');
+      moveLayer(id, l.id, above);
+    });
+    ul.appendChild(li);
+  }
+}
+
+function selectLayer(id) {
+  selId = id;
+  renderLayerList();
+  refreshProps();
+  loadEditor();
+  const l = sel();
+  canvas.style.cursor = l && l.type === 'image' ? 'move' : 'crosshair';
+  scheduleSave();
+}
+
+function refreshProps() {
+  const l = sel();
+  $('#props').hidden = !l;
+  if (!l) return;
+  document.querySelectorAll('#props [data-for]').forEach(el => { el.hidden = el.dataset.for !== l.type; });
+  $('#pOpacity').value = Math.round(l.opacity * 100);
+  $('#pOpacityN').value = Math.round(l.opacity * 100);
+  $('#pBlend').value = l.blend;
+  if (l.type === 'shader') $('#pAlpha').value = l.alphaMode;
+  else refreshImageProps(l);
+}
+function refreshImageProps(l) {
+  $('#pX').value = +(l.x * 100).toFixed(1);
+  $('#pY').value = +(l.y * 100).toFixed(1);
+  $('#pScale').value = Math.round(l.scale * 100);
+  $('#pScaleN').value = Math.round(l.scale * 100);
+}
+
+function propChanged() { dirty = true; renderLayerList(); scheduleSave(); }
+$('#pOpacity').addEventListener('input', () => {
+  const l = sel(); if (!l) return;
+  l.opacity = +$('#pOpacity').value / 100;
+  $('#pOpacityN').value = $('#pOpacity').value;
+  propChanged();
+});
+$('#pOpacityN').addEventListener('change', () => {
+  const l = sel(); if (!l) return;
+  l.opacity = Math.min(1, Math.max(0, (+$('#pOpacityN').value || 0) / 100));
+  refreshProps(); propChanged();
+});
+$('#pBlend').addEventListener('change', () => { const l = sel(); if (!l) return; l.blend = $('#pBlend').value; propChanged(); });
+$('#pAlpha').addEventListener('change', () => { const l = sel(); if (!l) return; l.alphaMode = +$('#pAlpha').value; propChanged(); });
+['#pX', '#pY'].forEach(id => $(id).addEventListener('change', () => {
+  const l = sel(); if (!l || l.type !== 'image') return;
+  l.x = (+$('#pX').value || 0) / 100;
+  l.y = (+$('#pY').value || 0) / 100;
+  propChanged();
+}));
+$('#pScale').addEventListener('input', () => {
+  const l = sel(); if (!l || l.type !== 'image') return;
+  l.scale = +$('#pScale').value / 100;
+  $('#pScaleN').value = $('#pScale').value;
+  propChanged();
+});
+$('#pScaleN').addEventListener('change', () => {
+  const l = sel(); if (!l || l.type !== 'image') return;
+  l.scale = Math.max(0.01, (+$('#pScaleN').value || 100) / 100);
+  refreshImageProps(l); propChanged();
+});
+$('#pReset').addEventListener('click', () => {
+  const l = sel(); if (!l || l.type !== 'image') return;
+  l.x = 0.5; l.y = 0.5; l.scale = 1;
+  refreshImageProps(l); propChanged();
+});
+$('#pFitOut').addEventListener('click', () => {
+  const l = sel(); if (!l || l.type !== 'image') return;
+  $('#w').value = l.iw; $('#h').value = l.ih;
+  l.x = 0.5; l.y = 0.5; l.scale = 1;
+  refreshImageProps(l);
+  onSettingsChange();
+  propChanged();
+});
+$('#dupLayer').addEventListener('click', () => duplicateLayer(sel()));
+$('#delLayer').addEventListener('click', () => { const l = sel(); if (l) removeLayer(l); });
+$('#addShader').addEventListener('click', () => {
+  const l = makeShaderLayer();
+  compileLayer(l);
+  insertLayer(l);
+  code.focus();
+});
+$('#addImage').addEventListener('change', async e => { await addImageFiles(e.target.files); e.target.value = ''; });
+
+/* ---------- drop & paste ---------- */
+const previewEl = $('#preview');
+let dragDepth = 0;
+window.addEventListener('dragenter', e => {
+  if (!e.dataTransfer.types.includes('Files')) return;
+  dragDepth++; previewEl.classList.add('dropping');
+});
+window.addEventListener('dragleave', e => {
+  if (!e.dataTransfer.types.includes('Files')) return;
+  if (--dragDepth <= 0) { dragDepth = 0; previewEl.classList.remove('dropping'); }
+});
+window.addEventListener('dragover', e => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); });
+window.addEventListener('drop', e => {
+  if (!e.dataTransfer.types.includes('Files')) return;
+  e.preventDefault();
+  dragDepth = 0; previewEl.classList.remove('dropping');
+  const files = [...e.dataTransfer.files];
+  const glsl = files.find(f => /\.(glsl|frag|fs)$/i.test(f.name));
+  if (glsl) openShaderFile(glsl);
+  addImageFiles(files);
+});
+window.addEventListener('paste', e => {
+  const files = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith('image/'));
+  if (!files.length) return;
+  e.preventDefault();
+  addImageFiles(files);
+});
 
 /* ================================================================
    Editor
    ================================================================ */
 const code = $('#code'), gutter = $('#gutter'), log = $('#log');
-let errorLines = new Set();
+
+function loadEditor() {
+  const l = sel();
+  if (l && l.type === 'shader') {
+    code.disabled = false;
+    code.placeholder = '';
+    if (code.value !== l.code) { code.value = l.code; code.scrollTop = 0; }
+  } else {
+    code.disabled = true;
+    code.value = '';
+    code.placeholder = l ? '画像レイヤーを選択中です。\nシェーダーを編集するには GLSL レイヤーを選んでください。'
+                         : '＋GLSL でシェーダーレイヤーを追加してください。';
+  }
+  updateEditingLabel();
+  updateGutter();
+  showLayerLog();
+}
+function updateEditingLabel() {
+  const l = sel();
+  $('#editing').textContent = l && l.type === 'shader' ? '編集中：' + l.name : '';
+}
 
 function updateGutter() {
-  const n = code.value.split('\n').length;
+  const l = sel();
+  const errs = l && l.type === 'shader' ? l.errorLines : new Set();
+  const n = code.value ? code.value.split('\n').length : 1;
   let html = '';
-  for (let i = 1; i <= n; i++) html += (errorLines.has(i) ? `<span class="e">${i}</span>` : i) + '\n';
+  for (let i = 1; i <= n; i++) html += (errs.has(i) ? `<span class="e">${i}</span>` : i) + '\n';
   gutter.innerHTML = html;
   gutter.scrollTop = code.scrollTop;
 }
 code.addEventListener('scroll', () => { gutter.scrollTop = code.scrollTop; });
+
+function showLayerLog() {
+  const l = sel();
+  if (!l) { log.textContent = ''; log.className = 'log'; return; }
+  if (l.type === 'image') {
+    log.textContent = `画像 ${l.iw}×${l.ih}　プレビュー上でドラッグで移動、ホイールで拡大縮小`;
+    log.className = 'log info';
+  } else if (l.error) {
+    log.textContent = l.error; log.className = 'log err';
+  } else {
+    log.textContent = '✓ コンパイルOK'; log.className = 'log ok';
+  }
+}
 
 code.addEventListener('keydown', e => {
   if (e.key === 'Tab') {
@@ -380,74 +1005,74 @@ code.addEventListener('keydown', e => {
     onCodeInput();
   } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
     e.preventDefault();
-    compile();
+    const l = sel(); if (l && l.type === 'shader') compileLayer(l);
   }
 });
 
 let compileTimer = 0;
 function onCodeInput() {
+  const l = sel();
+  if (!l || l.type !== 'shader') return;
+  l.code = code.value;
   updateGutter();
   scheduleSave();
   if ($('#autoCompile').checked) {
     clearTimeout(compileTimer);
-    compileTimer = setTimeout(compile, 450);
+    const target = l;
+    compileTimer = setTimeout(() => compileLayer(target), 450);
   }
 }
 code.addEventListener('input', onCodeInput);
+$('#btnCompile').addEventListener('click', () => { const l = sel(); if (l && l.type === 'shader') compileLayer(l); });
 
-function showLog(text, ok) {
-  log.textContent = text;
-  log.className = 'log ' + (ok ? 'ok' : 'err');
-}
+/* ---------- presets / save / open ---------- */
+const presetSel = $('#preset');
+PRESETS.forEach((p, i) => presetSel.add(new Option(p.name, i)));
+presetSel.addEventListener('change', () => {
+  const p = PRESETS[+presetSel.value];
+  presetSel.value = '';
+  if (!p) return;
+  let l = sel();
+  if (!l || l.type !== 'shader') {
+    l = makeShaderLayer({ name: p.name, code: p.code, alphaMode: p.alphaMode, blend: p.blend });
+    compileLayer(l);
+    insertLayer(l);
+    return;
+  }
+  const untouched = !l.code.trim() || l.code === NEW_SHADER_CODE || PRESETS.some(q => q.code === l.code);
+  if (!untouched && !confirm(`「${l.name}」のコードを置き換えます。よろしいですか？`)) return;
+  Object.assign(l, { name: p.name, code: p.code, alphaMode: p.alphaMode, blend: p.blend });
+  loadEditor();
+  refreshProps();
+  compileLayer(l);
+  scheduleSave();
+});
 
-function compile() {
-  const userSrc = code.value.replace(/^[ \t]*#version.*$/gm, '');
-  const userLines = userSrc.split('\n').length;
-  const fs = gl.createShader(gl.FRAGMENT_SHADER);
-  gl.shaderSource(fs, FRAG_HEAD + userSrc + FRAG_TAIL);
-  gl.compileShader(fs);
-  if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
-    reportErrors(gl.getShaderInfoLog(fs) || 'compile error', userLines);
-    gl.deleteShader(fs);
-    return false;
+$('#btnSave').addEventListener('click', () => {
+  const l = sel();
+  if (!l || l.type !== 'shader') return setStatus('GLSLレイヤーを選んでください');
+  download(new Blob([l.code], { type: 'text/plain' }), l.name.replace(/[\\/:*?"<>|]/g, '_') + '.glsl');
+});
+async function openShaderFile(f) {
+  const text = await f.text();
+  const base = f.name.replace(/\.[^.]+$/, '');
+  const l = sel();
+  if (l && l.type === 'shader') {
+    Object.assign(l, { code: text, name: base });
+    loadEditor();
+    compileLayer(l);
+    scheduleSave();
+  } else {
+    const n = makeShaderLayer({ name: base, code: text });
+    compileLayer(n);
+    insertLayer(n);
   }
-  const p = gl.createProgram();
-  gl.attachShader(p, vsObj);
-  gl.attachShader(p, fs);
-  gl.linkProgram(p);
-  gl.deleteShader(fs);
-  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
-    reportErrors(gl.getProgramInfoLog(p) || 'link error', userLines);
-    gl.deleteProgram(p);
-    return false;
-  }
-  if (prog) gl.deleteProgram(prog);
-  prog = p;
-  U = {};
-  for (const n of UNIFORMS) U[n] = gl.getUniformLocation(p, n);
-  errorLines = new Set();
-  updateGutter();
-  showLog('✓ コンパイルOK', true);
-  dirty = true;
-  return true;
 }
-
-function reportErrors(info, userLines) {
-  errorLines = new Set();
-  const out = [];
-  for (const raw of info.split('\n')) {
-    const line = raw.trim();
-    if (!line) continue;
-    const m = line.match(/^(?:ERROR|WARNING):\s*\d+:(\d+):\s*(.*)$/);
-    if (m) {
-      const ln = +m[1];
-      if (ln >= 1 && ln <= userLines) { errorLines.add(ln); out.push(`${ln}行目: ${m[2]}`); }
-      else out.push(`(末尾) ${m[2]}　← mainImage が無い・括弧の閉じ忘れなど`);
-    } else out.push(line);
-  }
-  updateGutter();
-  showLog(out.join('\n'), false);
-}
+$('#fileOpen').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (f) openShaderFile(f);
+});
 
 /* ================================================================
    Settings
@@ -465,12 +1090,11 @@ function S() {
     dur: num('#dur', 2, 0.01, 3600),
     start: num('#start', 0, -1e6, 1e6),
     prefix: ($('#prefix').value || 'frame_').replace(/[\\/:*?"<>|]/g, '_'),
-    alphaMode: +$('#alphaMode').value,
     blackBg: $('#blackBg').checked,
     pscale: +$('#pscale').value,
   };
 }
-function frameCountOf(s) { return Math.max(1, Math.round(s.dur * s.fps)); }
+const frameCountOf = s => Math.max(1, Math.round(s.dur * s.fps));
 
 function applyResolution(scale) {
   const s = S();
@@ -479,166 +1103,169 @@ function applyResolution(scale) {
   canvas.height = Math.max(1, Math.round(s.h * sc));
   dirty = true;
 }
-
 function fitStage() {
   const s = S();
-  const box = $('#preview');
-  const bw = box.clientWidth - 32, bh = box.clientHeight - 32;
-  const k = Math.min(bw / s.w, bh / s.h);
+  const bw = previewEl.clientWidth - 32, bh = previewEl.clientHeight - 32;
+  const k = Math.max(0.01, Math.min(bw / s.w, bh / s.h));
   const stage = $('#stage');
   stage.style.width = Math.max(1, Math.floor(s.w * k)) + 'px';
   stage.style.height = Math.max(1, Math.floor(s.h * k)) + 'px';
 }
-
 function updateFrameInfo() {
   const s = S();
   const n = frameCountOf(s);
-  $('#frameInfo').textContent = `${n} フレーム（${s.start.toFixed(2)}s 〜 ${(s.start + (n - 1) / s.fps).toFixed(2)}s）`;
+  $('#frameInfo').textContent = `${n}フレーム`;
+  $('#frameInfo').title = `${s.start.toFixed(2)}s 〜 ${(s.start + (n - 1) / s.fps).toFixed(2)}s`;
   $('#scrub').max = s.dur;
   $('#scrub').step = 1 / s.fps;
 }
-
 function onSettingsChange() {
   applyResolution();
   fitStage();
   updateFrameInfo();
   scheduleSave();
-  dirty = true;
 }
-['#w','#h','#fps','#dur','#start','#prefix','#alphaMode','#blackBg','#pscale'].forEach(id =>
+['#w','#h','#fps','#dur','#start','#prefix','#blackBg','#pscale'].forEach(id =>
   $(id).addEventListener('change', onSettingsChange));
-['#w','#h','#fps','#dur','#start'].forEach(id => $(id).addEventListener('input', () => { updateFrameInfo(); }));
+['#w','#h','#fps','#dur','#start'].forEach(id => $(id).addEventListener('input', updateFrameInfo));
 window.addEventListener('resize', fitStage);
+new ResizeObserver(fitStage).observe(previewEl);
 
-/* ---------- preview background & blend ---------- */
-let bgImage = null; // {url, w, h}
 function applyBg() {
   const mode = $('#bgMode').value;
   const stage = $('#stage');
   stage.className = 'stage';
   stage.style.background = '';
   $('#bgColor').hidden = mode !== 'color';
-  $('#bgImgBtn').hidden = mode !== 'image';
-  $('#fitToImg').hidden = !(mode === 'image' && bgImage);
   if (mode === 'checker-dark') stage.classList.add('bg-checker-dark');
   else if (mode === 'checker-light') stage.classList.add('bg-checker-light');
   else if (mode === 'black') stage.style.background = '#000';
   else if (mode === 'white') stage.style.background = '#fff';
   else if (mode === 'color') stage.style.background = $('#bgColor').value;
-  else if (mode === 'image') {
-    if (bgImage) stage.style.background = `#000 url("${bgImage.url}") center / cover no-repeat`;
-    else stage.classList.add('bg-checker-dark');
-  }
   scheduleSave();
 }
 $('#bgMode').addEventListener('change', applyBg);
 $('#bgColor').addEventListener('input', applyBg);
-$('#bgImg').addEventListener('change', e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  const url = URL.createObjectURL(f);
-  const img = new Image();
-  img.onload = () => {
-    if (bgImage) URL.revokeObjectURL(bgImage.url);
-    bgImage = { url, w: img.naturalWidth, h: img.naturalHeight };
-    applyBg();
-  };
-  img.src = url;
-  e.target.value = '';
-});
-$('#fitToImg').addEventListener('click', () => {
-  if (!bgImage) return;
-  $('#w').value = bgImage.w;
-  $('#h').value = bgImage.h;
-  onSettingsChange();
-});
-$('#blend').addEventListener('change', () => {
-  canvas.style.mixBlendMode = $('#blend').value;
-  scheduleSave();
-});
 
-/* ---------- iChannel0 ---------- */
-$('#ch0').addEventListener('change', e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  const url = URL.createObjectURL(f);
-  const img = new Image();
-  img.onload = () => {
-    gl.bindTexture(gl.TEXTURE_2D, tex0);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    gl.generateMipmap(gl.TEXTURE_2D);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-    tex0Size = [img.naturalWidth, img.naturalHeight];
-    $('#ch0Btn').firstChild.textContent = f.name.length > 14 ? f.name.slice(0, 13) + '…' : f.name;
-    $('#ch0Clear').hidden = false;
-    URL.revokeObjectURL(url);
-    dirty = true;
-  };
-  img.src = url;
-  e.target.value = '';
-});
-$('#ch0Clear').addEventListener('click', () => {
-  gl.bindTexture(gl.TEXTURE_2D, tex0);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  tex0Size = [1, 1];
-  $('#ch0Btn').firstChild.textContent = '画像…';
-  $('#ch0Clear').hidden = true;
-  dirty = true;
-});
-
-/* ---------- mouse (Shadertoy 互換) ---------- */
+/* ---------- pointer: 画像の移動 / iMouse ---------- */
 const mouse = { x: 0, y: 0, cx: 0, cy: 0, down: false };
+let imgDrag = null;
 function mousePos(e) {
   const r = canvas.getBoundingClientRect();
   return [(e.clientX - r.left) / r.width, 1 - (e.clientY - r.top) / r.height];
 }
 canvas.addEventListener('pointerdown', e => {
+  canvas.setPointerCapture(e.pointerId);
+  const l = sel();
+  if (l && l.type === 'image') {
+    imgDrag = { l, sx: e.clientX, sy: e.clientY, x: l.x, y: l.y, r: canvas.getBoundingClientRect() };
+    return;
+  }
   [mouse.x, mouse.y] = mousePos(e);
   mouse.cx = mouse.x; mouse.cy = mouse.y; mouse.down = true;
-  canvas.setPointerCapture(e.pointerId);
   dirty = true;
 });
-canvas.addEventListener('pointermove', e => { if (mouse.down) { [mouse.x, mouse.y] = mousePos(e); dirty = true; } });
-canvas.addEventListener('pointerup', () => { mouse.down = false; dirty = true; });
+canvas.addEventListener('pointermove', e => {
+  if (imgDrag) {
+    imgDrag.l.x = imgDrag.x + (e.clientX - imgDrag.sx) / imgDrag.r.width;
+    imgDrag.l.y = imgDrag.y + (e.clientY - imgDrag.sy) / imgDrag.r.height;
+    if (imgDrag.l === sel()) refreshImageProps(imgDrag.l);
+    dirty = true;
+  } else if (mouse.down) {
+    [mouse.x, mouse.y] = mousePos(e);
+    dirty = true;
+  }
+});
+canvas.addEventListener('pointerup', () => {
+  if (imgDrag) { imgDrag = null; scheduleSave(); }
+  mouse.down = false;
+  dirty = true;
+});
+canvas.addEventListener('wheel', e => {
+  const l = sel();
+  if (!l || l.type !== 'image') return;
+  e.preventDefault();
+  l.scale = Math.min(20, Math.max(0.01, l.scale * Math.exp(-e.deltaY * 0.0015)));
+  refreshImageProps(l);
+  dirty = true;
+  scheduleSave();
+}, { passive: false });
 
 /* ================================================================
-   Render & playback
+   Render
    ================================================================ */
 function render(time, frame, dt) {
-  if (!prog) return;
   const s = S();
   const W = canvas.width, H = canvas.height;
-  gl.viewport(0, 0, W, H);
-  gl.useProgram(prog);
-  gl.bindVertexArray(vao);
-  gl.uniform3f(U.iResolution, W, H, 1);
-  gl.uniform1f(U.iTime, time);
-  gl.uniform1f(U.iTimeDelta, dt);
-  gl.uniform1i(U.iFrame, frame);
-  gl.uniform1f(U.iFrameRate, s.fps);
-  gl.uniform1f(U.iDuration, s.dur);
-  const mz = mouse.cx * W, mw = mouse.cy * H;
-  gl.uniform4f(U.iMouse, mouse.x * W, mouse.y * H, mouse.down ? mz : -mz, mouse.down ? mw : -mw);
-  const d = new Date();
-  gl.uniform4f(U.iDate, d.getFullYear(), d.getMonth(), d.getDate(),
-    d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds());
-  const res = new Float32Array(12);
-  res[0] = tex0Size[0]; res[1] = tex0Size[1]; res[2] = 1;
-  gl.uniform3fv(U.iChannelResolution, res);
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, tex0);
-  gl.uniform1i(U.iChannel0, 0);
-  gl.uniform1i(U._alphaMode, s.alphaMode);
-  gl.uniform1i(U._blackBg, s.blackBg ? 1 : 0);
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  ensureTargets(W, H);
+  let cur = 0;
+  clearTarget(RT.acc[0]);
+
+  for (const l of layers) {
+    if (!l.visible || l.opacity <= 0) continue;
+
+    if (l.type === 'image') {
+      if (!l.tex) continue;
+      gl.useProgram(P.image.prog);
+      bindTex(0, l.tex);
+      gl.uniform1i(P.image.u.uTex, 0);
+      gl.uniform2f(P.image.u.uSize, W, H);
+      gl.uniform2f(P.image.u.uImgSize, l.iw, l.ih);
+      gl.uniform2f(P.image.u.uPos, l.x, l.y);
+      gl.uniform1f(P.image.u.uScale, l.scale);
+      drawTo(RT.layer.fb);
+    } else {
+      if (!l.prog) continue;
+      const U = l.U;
+      if (U.iChannel0) {
+        gl.useProgram(P.unpremul.prog);
+        bindTex(0, RT.acc[cur].tex);
+        gl.uniform1i(P.unpremul.u.uSrc, 0);
+        drawTo(RT.ch.fb);
+      }
+      gl.useProgram(l.prog);
+      bindTex(0, RT.ch.tex);
+      gl.uniform1i(U.iChannel0, 0);
+      gl.uniform3f(U.iResolution, W, H, 1);
+      gl.uniform1f(U.iTime, time);
+      gl.uniform1f(U.iTimeDelta, dt);
+      gl.uniform1i(U.iFrame, frame);
+      gl.uniform1f(U.iFrameRate, s.fps);
+      gl.uniform1f(U.iDuration, s.dur);
+      const mz = mouse.cx * W, mw = mouse.cy * H;
+      gl.uniform4f(U.iMouse, mouse.x * W, mouse.y * H, mouse.down ? mz : -mz, mouse.down ? mw : -mw);
+      const d = new Date();
+      gl.uniform4f(U.iDate, d.getFullYear(), d.getMonth(), d.getDate(),
+        d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds());
+      const res = new Float32Array(12);
+      res[0] = W; res[1] = H; res[2] = 1;
+      gl.uniform3fv(U.iChannelResolution, res);
+      gl.uniform1i(U._alphaMode, l.alphaMode);
+      drawTo(RT.layer.fb);
+    }
+
+    // 合成: acc[cur] + layer → acc[1-cur]
+    gl.useProgram(P.comp.prog);
+    bindTex(0, RT.acc[cur].tex);
+    bindTex(1, RT.layer.tex);
+    gl.uniform1i(P.comp.u.uBase, 0);
+    gl.uniform1i(P.comp.u.uLayer, 1);
+    gl.uniform1f(P.comp.u.uOpacity, l.opacity);
+    gl.uniform1i(P.comp.u.uMode, BLEND_ID[l.blend] ?? 0);
+    drawTo(RT.acc[1 - cur].fb);
+    bindTex(1, null);
+    cur = 1 - cur;
+  }
+
+  gl.useProgram(P.final.prog);
+  bindTex(0, RT.acc[cur].tex);
+  gl.uniform1i(P.final.u.uSrc, 0);
+  gl.uniform1i(P.final.u.uBlack, s.blackBg ? 1 : 0);
+  drawTo(null);
+  bindTex(0, null);
 }
 
+/* ---------- playback ---------- */
 let playing = true, elapsed = 0, last = performance.now(), frameCounter = 0;
 let dirty = true, exporting = false, scrubbing = false;
 
@@ -660,15 +1287,11 @@ function tick(now) {
   }
   requestAnimationFrame(tick);
 }
-
 $('#btnPlay').addEventListener('click', () => {
   playing = !playing;
   $('#btnPlay').textContent = playing ? '一時停止' : '再生';
 });
-$('#scrub').addEventListener('input', () => {
-  elapsed = +$('#scrub').value;
-  dirty = true;
-});
+$('#scrub').addEventListener('input', () => { elapsed = +$('#scrub').value; dirty = true; });
 $('#scrub').addEventListener('pointerdown', () => { scrubbing = true; });
 window.addEventListener('pointerup', () => { scrubbing = false; });
 
@@ -730,7 +1353,6 @@ class ZipSink {
     download(new Blob([...this.parts, ...this.central, end], { type: 'application/zip' }), zipName);
   }
 }
-
 class DirSink {
   constructor(dir) { this.dir = dir; }
   async add(name, blob) {
@@ -751,7 +1373,6 @@ function download(blob, name) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 60000);
 }
-
 const canvasBlob = () => new Promise((res, rej) =>
   canvas.toBlob(b => b ? res(b) : rej(new Error('PNGの生成に失敗しました（解像度が大きすぎる可能性があります）')), 'image/png'));
 
@@ -765,15 +1386,13 @@ function setStatus(t) { $('#status').textContent = t; }
 function setProgress(r) { $('#bar').style.width = (r * 100).toFixed(1) + '%'; }
 
 async function exportStill() {
-  if (!prog) return setStatus('先にシェーダーをコンパイルしてください');
   const s = S();
   setBusy(true);
   try {
     applyResolution(1);
     const t = s.start + elapsed;
     render(t, Math.floor(elapsed * s.fps), 1 / s.fps);
-    const blob = await canvasBlob();
-    download(blob, `${s.prefix}t${t.toFixed(3)}.png`);
+    download(await canvasBlob(), `${s.prefix}t${t.toFixed(3)}.png`);
     setStatus(`PNGを書き出しました（${s.w}×${s.h}）`);
   } catch (e) {
     setStatus('エラー: ' + e.message);
@@ -784,7 +1403,6 @@ async function exportStill() {
 }
 
 async function exportSequence(kind) {
-  if (!prog) return setStatus('先にシェーダーをコンパイルしてください');
   const s = S();
   const n = frameCountOf(s);
   let sink;
@@ -803,8 +1421,7 @@ async function exportSequence(kind) {
     for (let i = 0; i < n; i++) {
       if (cancelReq) break;
       render(s.start + i / s.fps, i, 1 / s.fps);
-      const blob = await canvasBlob();
-      await sink.add(`${s.prefix}${String(i).padStart(pad, '0')}.png`, blob);
+      await sink.add(`${s.prefix}${String(i).padStart(pad, '0')}.png`, await canvasBlob());
       setProgress((i + 1) / n);
       setStatus(`${i + 1} / ${n}`);
       if (i % 3 === 2) await new Promise(r => setTimeout(r, 0));
@@ -823,108 +1440,135 @@ async function exportSequence(kind) {
     setBusy(false);
   }
 }
-
 $('#btnStill').addEventListener('click', exportStill);
 $('#btnZip').addEventListener('click', () => exportSequence('zip'));
 $('#btnDir').addEventListener('click', () => exportSequence('dir'));
 $('#btnCancel').addEventListener('click', () => { cancelReq = true; });
 
 /* ================================================================
-   Save / load / presets
+   Persistence (設定とGLSL → localStorage / 画像 → IndexedDB)
    ================================================================ */
-const STORE_KEY = 'withgaraku.glsl-exporter.v1';
-let saveTimer = 0;
+const idb = (() => {
+  let dbp = null;
+  const open = () => dbp ??= new Promise((res, rej) => {
+    const r = indexedDB.open('glsl-effect-exporter', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('images');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  const run = async (mode, fn) => {
+    const db = await open();
+    return new Promise((res, rej) => {
+      const t = db.transaction('images', mode);
+      const req = fn(t.objectStore('images'));
+      t.oncomplete = () => res(req.result);
+      t.onerror = () => rej(t.error);
+    });
+  };
+  return {
+    put: (k, v) => run('readwrite', s => s.put(v, k)),
+    get: k => run('readonly', s => s.get(k)),
+    del: k => run('readwrite', s => s.delete(k)),
+  };
+})();
+
+const STORE_KEY = 'glsl-effect-exporter.v2';
+const OLD_KEY = 'withgaraku.glsl-exporter.v1';
+const SETTING_IDS = ['w','h','fps','dur','start','prefix','pscale','bgMode','bgColor','blackBg','loop','autoCompile'];
+let saveTimer = 0, booting = true;
 function scheduleSave() {
+  if (booting) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     try {
       const settings = {};
-      for (const id of ['w','h','fps','dur','start','prefix','alphaMode','pscale','bgMode','bgColor','blend'])
-        settings[id] = $('#' + id).value;
-      settings.blackBg = $('#blackBg').checked;
-      settings.loop = $('#loop').checked;
-      settings.autoCompile = $('#autoCompile').checked;
-      localStorage.setItem(STORE_KEY, JSON.stringify({ code: code.value, settings }));
+      for (const id of SETTING_IDS) {
+        const el = $('#' + id);
+        settings[id] = el.type === 'checkbox' ? el.checked : el.value;
+      }
+      const ls = layers.map(l => {
+        const base = { id: l.id, type: l.type, name: l.name, visible: l.visible, opacity: l.opacity, blend: l.blend };
+        return l.type === 'shader' ? { ...base, code: l.code, alphaMode: l.alphaMode }
+                                   : { ...base, x: l.x, y: l.y, scale: l.scale };
+      });
+      localStorage.setItem(STORE_KEY, JSON.stringify({ settings, layers: ls, selId }));
     } catch (_) { /* storage unavailable */ }
   }, 300);
 }
-function loadSaved() {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (!raw) return false;
-    const { code: c, settings } = JSON.parse(raw);
-    if (typeof c === 'string') code.value = c;
-    if (settings) {
-      for (const [k, v] of Object.entries(settings)) {
-        const el = $('#' + k);
-        if (!el) continue;
-        if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
+function applySettings(settings) {
+  for (const [k, v] of Object.entries(settings || {})) {
+    const el = $('#' + k);
+    if (!el) continue;
+    if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
+  }
+}
+async function restore() {
+  let data = null;
+  try { data = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (_) {}
+  if (!data) {
+    // 旧バージョン（単一シェーダー）からの引き継ぎ
+    try {
+      const old = JSON.parse(localStorage.getItem(OLD_KEY) || 'null');
+      if (old && typeof old.code === 'string') {
+        const { alphaMode, ...rest } = old.settings || {};
+        applySettings(rest);
+        if ($('#bgMode').selectedIndex < 0) $('#bgMode').value = 'checker-dark';
+        const l = makeShaderLayer({ code: old.code, alphaMode: +alphaMode || 0 });
+        compileLayer(l);
+        layers.push(l);
+        return l.id;
       }
-      if (settings.bgMode === 'image') $('#bgMode').value = 'checker-dark'; // 画像は保存されないので戻す
+    } catch (_) {}
+    return null;
+  }
+  applySettings(data.settings);
+  for (const s of data.layers || []) {
+    if (s.type === 'shader') {
+      const l = makeShaderLayer(s);
+      compileLayer(l);
+      layers.push(l);
+    } else if (s.type === 'image') {
+      try {
+        const blob = await idb.get(s.id);
+        if (!blob) continue;
+        const l = makeImageLayer({ ...s, blob });
+        await loadImageLayer(l);
+        layers.push(l);
+      } catch (_) { /* 画像が読めなければ飛ばす */ }
     }
-    return typeof c === 'string';
-  } catch (_) { return false; }
+  }
+  return byId(data.selId) ? data.selId : (layers.at(-1)?.id ?? null);
 }
-
-const presetSel = $('#preset');
-PRESETS.forEach((p, i) => presetSel.add(new Option(p.name, i)));
-presetSel.addEventListener('change', () => {
-  const p = PRESETS[+presetSel.value];
-  presetSel.value = '';
-  if (!p) return;
-  const isPreset = PRESETS.some(q => q.code === code.value);
-  if (code.value.trim() && !isPreset && !confirm('今のコードを置き換えます。よろしいですか？（「保存」で .glsl に残せます）')) return;
-  loadPreset(p);
-});
-function loadPreset(p) {
-  code.value = p.code;
-  $('#alphaMode').value = p.alphaMode;
-  $('#blackBg').checked = p.blackBg;
-  if (p.blackBg) { $('#bgMode').value = 'black'; $('#blend').value = 'normal'; }
-  else $('#bgMode').value = p.bg || 'checker-dark';
-  canvas.style.mixBlendMode = $('#blend').value;
-  applyBg();
-  onSettingsChange();
-  updateGutter();
-  compile();
-}
-
-$('#btnSave').addEventListener('click', () => {
-  download(new Blob([code.value], { type: 'text/plain' }), 'effect.glsl');
-});
-$('#fileOpen').addEventListener('change', async e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  code.value = await f.text();
-  e.target.value = '';
-  onCodeInput();
-  compile();
-});
-$('#loop').addEventListener('change', scheduleSave);
-$('#autoCompile').addEventListener('change', scheduleSave);
 
 /* ================================================================
    Boot
    ================================================================ */
-if (!gl) {
-  showLog('このブラウザでは WebGL2 が使えません。最新の Chrome / Edge / Firefox / Safari で開いてください。', false);
-} else {
-  initGL();
-  const restored = loadSaved();
-  if (!restored) loadPreset(PRESETS[0]);
-  else {
-    canvas.style.mixBlendMode = $('#blend').value;
-    applyBg();
-    onSettingsChange();
-    updateGutter();
-    compile();
+(async () => {
+  if (!gl) {
+    log.textContent = 'このブラウザでは WebGL2 が使えません。最新の Chrome / Edge / Firefox / Safari で開いてください。';
+    log.className = 'log err';
+    return;
   }
+  initGL();
+  let first = await restore();
+  if (!layers.length && first === null) {
+    const p = PRESETS[0];
+    const l = makeShaderLayer({ name: p.name, code: p.code, alphaMode: p.alphaMode, blend: p.blend });
+    compileLayer(l);
+    layers.push(l);
+    first = l.id;
+  }
+  applyBg();
+  onSettingsChange();
+  selectLayer(first);
   if (!window.showDirectoryPicker) {
     $('#btnDir').disabled = true;
     $('#btnDir').title = 'このブラウザは未対応です（Chrome / Edge で使えます）';
   }
+  booting = false;
+  scheduleSave();
   requestAnimationFrame(tick);
-}
+})();
 </script>
 </body>
 </html>
