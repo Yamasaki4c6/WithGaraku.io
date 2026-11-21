@@ -8,7 +8,7 @@
 :root{
   --bg:#131418; --panel:#1b1d22; --panel2:#22252b; --line:#2e3239;
   --text:#e8e8eb; --muted:#9296a0; --accent:#f2b45c; --accent2:#7cc7ff;
-  --err:#ff6b6b; --ok:#7bd88f; --sel:#2a303b;
+  --err:#ff6b6b; --ok:#7bd88f; --sel:#2a303b; --clip:#e0567a;
   --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Noto Sans Mono", monospace;
 }
 *{box-sizing:border-box}
@@ -16,8 +16,8 @@
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
   font:13px/1.5 system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
 button,select,input{font:inherit;color:inherit}
-.app{display:grid;grid-template-columns:minmax(360px,40%) 1fr;height:100vh}
-@media (max-width:1000px){.app{grid-template-columns:1fr;height:auto}.editor-col{height:65vh}}
+.app{display:grid;grid-template-columns:minmax(340px,36%) 1fr;height:100vh}
+@media (max-width:1100px){.app{grid-template-columns:1fr;height:auto}.editor-col{height:60vh}.right-col{height:100vh}}
 
 /* ---------- editor ---------- */
 .editor-col{display:flex;flex-direction:column;border-right:1px solid var(--line);min-height:0;background:var(--panel)}
@@ -35,48 +35,59 @@ textarea#code:disabled{color:var(--muted)}
 
 /* ---------- right column ---------- */
 .right-col{display:flex;flex-direction:column;min-height:0;min-width:0}
-.stage-row{flex:1;display:flex;min-height:300px}
-.preview{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;padding:16px;position:relative}
-.preview.dropping{outline:2px dashed var(--accent);outline-offset:-8px}
-.stage{position:relative;box-shadow:0 0 0 1px var(--line),0 8px 30px #0008}
-.stage canvas{display:block;width:100%;height:100%;touch-action:none}
+.stage-row{flex:1;display:flex;min-height:320px}
+.preview{flex:1;min-width:0;position:relative;overflow:hidden;background:#101114}
+.preview.dropping::after{content:'';position:absolute;inset:8px;border:2px dashed var(--accent);border-radius:8px;pointer-events:none}
+.stage{position:absolute;box-shadow:0 0 0 1px var(--line),0 8px 30px #0008}
+.stage canvas{display:block;width:100%;height:100%}
+#overlay{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.zoom-chip{position:absolute;left:10px;bottom:8px;font:11px var(--mono);color:var(--muted);background:#0009;
+  border:1px solid var(--line);border-radius:5px;padding:1px 6px;cursor:pointer}
 .bg-checker-dark{background:conic-gradient(#2b2d33 25%,#3a3d44 0 50%,#2b2d33 0 75%,#3a3d44 0) 0 0/20px 20px}
 .bg-checker-light{background:conic-gradient(#cfcfd4 25%,#fff 0 50%,#cfcfd4 0 75%,#fff 0) 0 0/20px 20px}
 
 /* ---------- layers ---------- */
-.layers{width:270px;flex:none;display:flex;flex-direction:column;border-left:1px solid var(--line);background:var(--panel);min-height:0}
+.layers{width:330px;flex:none;display:flex;flex-direction:column;border-left:1px solid var(--line);background:var(--panel);min-height:0}
 .layers-head{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line)}
 .layers-head b{margin-right:auto;font-weight:600}
 .layers-head button{padding:2px 8px}
-#layerList{list-style:none;margin:0;padding:0;overflow:auto;flex:1;min-height:80px}
-#layerList li{display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--line);cursor:pointer;
+#layerList{list-style:none;margin:0;padding:0;overflow:auto;flex:1 1 140px;min-height:100px}
+#layerList li{position:relative;display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid var(--line);cursor:pointer;
   border-left:3px solid transparent;user-select:none}
 #layerList li:hover{background:#20232a}
 #layerList li.sel{background:var(--sel);border-left-color:var(--accent)}
 #layerList li.off .lname,#layerList li.off .thumb{opacity:.4}
+#layerList li.clip .thumb{margin-left:12px}
+#layerList li.clip::before{content:'';position:absolute;left:40px;top:6px;bottom:6px;width:3px;border-radius:2px;background:var(--clip)}
 #layerList li.drop-above{box-shadow:inset 0 2px 0 var(--accent)}
 #layerList li.drop-below{box-shadow:inset 0 -2px 0 var(--accent)}
 #layerList li.empty{color:var(--muted);cursor:default;font-size:12px;line-height:1.7;border:0;padding:14px 12px}
-.eye{background:none;border:0;padding:2px;width:22px;height:22px;display:grid;place-items:center;color:var(--muted)}
+.eye{background:none;border:0;padding:2px;width:22px;height:22px;display:grid;place-items:center;color:var(--muted);flex:none}
 .eye:hover{color:var(--text)}
 .eye svg{width:16px;height:16px}
 .thumb{width:38px;height:26px;flex:none;border-radius:4px;display:grid;place-items:center;overflow:hidden;
   background:conic-gradient(#2b2d33 25%,#3a3d44 0 50%,#2b2d33 0 75%,#3a3d44 0) 0 0/8px 8px}
 .thumb img{width:100%;height:100%;object-fit:contain}
 .thumb.glsl{background:#2a2333;color:#d6b4ff;font:600 9.5px var(--mono);letter-spacing:.04em}
-.lname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lmeta{color:var(--muted);font-size:11px}
+.lname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lmeta{color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .errdot{width:8px;height:8px;border-radius:50%;background:var(--err);flex:none}
-.props{border-top:1px solid var(--line);padding:8px 10px;display:grid;grid-template-columns:minmax(0,1fr);gap:7px}
-.props[hidden]{display:none}
+.layer-tools{display:flex;gap:6px;padding:6px 10px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.layer-tools button{font-size:12px;padding:3px 8px}
+.layer-tools button.on{background:var(--clip);border-color:var(--clip);color:#fff}
+.layer-tools .sp{flex:1}
+.props{overflow:auto;flex:0 1 auto;max-height:58%;padding:6px 10px 10px;display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
+.props details{border:1px solid var(--line);border-radius:7px;padding:4px 8px 6px;background:#1f2126}
+.props summary{cursor:pointer;color:var(--accent2);font-size:12px;padding:2px 0}
+.props details > .prow{margin-top:5px}
 .prow{display:flex;align-items:center;gap:6px;min-width:0}
-.prow > span:first-child{color:var(--muted);width:4.6em;flex:none;font-size:12px}
+.prow > span:first-child{color:var(--muted);width:5em;flex:none;font-size:12px}
 .prow input[type=range]{min-width:40px;flex:1}
-.prow input[type=number]{width:3.9em;flex:none}
+.prow input[type=number]{width:4.8em;flex:none}
 .prow select{flex:1;min-width:0}
 .prow.btns{flex-wrap:wrap}
-#pX,#pY{width:4.8em}
-.prow.btns button{font-size:12px;padding:3px 8px}
+.prow.btns button{font-size:12px;padding:3px 7px}
+.prow label{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);white-space:nowrap}
 
 /* ---------- bottom panel ---------- */
 .panel{border-top:1px solid var(--line);background:var(--panel);padding:10px 12px;display:grid;gap:10px}
@@ -88,7 +99,7 @@ input[type=number],input[type=text],select{background:#121317;border:1px solid v
 input[type=number]{width:5.2em}
 input[type=number]:focus,input[type=text]:focus,select:focus{border-color:var(--accent)}
 input[type=range]{flex:1;min-width:120px;accent-color:var(--accent)}
-input[type=color]{width:30px;height:24px;border:0;background:none;padding:0}
+input[type=color]{width:30px;height:24px;border:0;background:none;padding:0;flex:none}
 button{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer}
 button:hover{border-color:#4a4f59}
 button.primary{background:var(--accent);border-color:var(--accent);color:#1b1407;font-weight:600}
@@ -129,6 +140,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
     <div class="stage-row">
       <div class="preview" id="preview">
         <div class="stage bg-checker-dark" id="stage"><canvas id="cv"></canvas></div>
+        <canvas id="overlay"></canvas>
+        <div class="zoom-chip" id="zoomChip" title="クリックで全体表示（Ctrl/⌘+0）">100%</div>
       </div>
 
       <aside class="layers">
@@ -138,36 +151,67 @@ button:disabled{opacity:.45;cursor:not-allowed}
           <button class="file-label" title="画像レイヤーを追加（ドロップ・貼り付けでも可）">＋画像<input type="file" id="addImage" accept="image/*" multiple></button>
         </div>
         <ul id="layerList"></ul>
+        <div class="layer-tools">
+          <button id="clipBtn" title="下のレイヤーでクリッピング（Ctrl/⌘+Alt+G）">クリッピング</button>
+          <span class="sp"></span>
+          <button id="undoBtn" title="取り消し（Ctrl/⌘+Z）">↶</button>
+          <button id="redoBtn" title="やり直し（Ctrl/⌘+Shift+Z）">↷</button>
+          <button id="dupLayer" title="複製">複製</button>
+          <button id="delLayer" title="削除（Delete）">削除</button>
+        </div>
         <div class="props" id="props" hidden>
           <div class="prow"><span>不透明度</span>
             <input type="range" id="pOpacity" min="0" max="100" step="1">
             <input type="number" id="pOpacityN" min="0" max="100" step="1"></div>
-          <div class="prow"><span>合成</span>
-            <select id="pBlend">
-              <option value="normal">通常</option>
-              <option value="add">加算（発光）</option>
-              <option value="screen">スクリーン</option>
-              <option value="multiply">乗算</option>
-              <option value="replace">置き換え</option>
-            </select></div>
+          <div class="prow"><span>合成モード</span><select id="pBlend"></select></div>
           <div class="prow" data-for="shader"><span>アルファ</span>
             <select id="pAlpha">
               <option value="0">straight — vec4(col, a)</option>
               <option value="1">premultiplied — vec4(col*a, a)</option>
             </select></div>
-          <div class="prow" data-for="image"><span>位置 %</span>
-            X<input type="number" id="pX" step="0.5"> Y<input type="number" id="pY" step="0.5"></div>
-          <div class="prow" data-for="image" title="100% = キャンバスに収まる大きさ"><span>拡大 %</span>
-            <input type="range" id="pScale" min="5" max="400" step="1">
-            <input type="number" id="pScaleN" min="1" max="2000" step="1"></div>
-          <div class="prow btns" data-for="image">
-            <button id="pReset">中央・100%</button>
-            <button id="pFitOut" title="出力解像度をこの画像と同じにします">出力サイズを画像に合わせる</button>
-          </div>
-          <div class="prow btns">
-            <button id="dupLayer">複製</button>
-            <button id="delLayer">削除</button>
-          </div>
+
+          <details open data-for="image">
+            <summary>変形</summary>
+            <div class="prow"><span>中心 px</span>
+              X<input type="number" id="pCX" step="1"> Y<input type="number" id="pCY" step="1"></div>
+            <div class="prow"><span>拡大 %</span>
+              幅<input type="number" id="pSW" step="1"> 高<input type="number" id="pSH" step="1">
+              <label title="縦横比を固定（ドラッグ中は Shift で一時的に切り替え）"><input type="checkbox" id="pLock" checked>固定</label></div>
+            <div class="prow"><span>回転 °</span>
+              <input type="range" id="pRot" min="-180" max="180" step="1">
+              <input type="number" id="pRotN" step="0.1"></div>
+            <div class="prow btns">
+              <button id="pFlipH">左右反転</button>
+              <button id="pFlipV">上下反転</button>
+              <button id="pReset" title="等倍・中央・回転なし">リセット</button>
+            </div>
+            <div class="prow btns">
+              <button id="pFitCanvas">キャンバスに合わせる</button>
+              <button id="pFitOut" title="出力解像度をこの画像と同じにします">出力サイズを画像に</button>
+            </div>
+            <div class="prow"><span>補間</span>
+              <select id="pInterp">
+                <option value="smooth">なめらか</option>
+                <option value="nearest">ニアレストネイバー（ドット絵向け）</option>
+              </select></div>
+          </details>
+
+          <details id="fxBox">
+            <summary>加工</summary>
+            <div class="prow"><span>抜き</span>
+              <select id="fxKey">
+                <option value="none">なし</option>
+                <option value="white">白抜き（白を透明に）</option>
+                <option value="black">黒抜き（黒を透明に）</option>
+              </select></div>
+            <div class="prow"><span>レイヤーカラー</span>
+              <label><input type="checkbox" id="fxColorOn">単色にする</label>
+              <input type="color" id="fxColor" value="#3a6df0"></div>
+            <div id="fxSliders"></div>
+            <div class="prow"><span>反転</span><label><input type="checkbox" id="fxInvert">色を反転</label></div>
+            <div class="prow"><span>フチの色</span><input type="color" id="fxOutlineColor" value="#ffffff"></div>
+            <div class="prow btns"><button id="fxReset">加工をリセット</button></div>
+          </details>
         </div>
       </aside>
     </div>
@@ -259,7 +303,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 }
 `},
 {
-  name: '光の粒', alphaMode: 1, blend: 'add',
+  name: '光の粒', alphaMode: 1, blend: 'addglow',
   code: `// 光の粒 — 光を足し算で重ねるので premultiplied で書いています
 // レイヤーの合成を「加算（発光）」にすると下の絵を明るく照らします
 
@@ -341,6 +385,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
   name: '陽炎（下を歪ませる）', alphaMode: 0, blend: 'replace',
   code: `// 陽炎 — iChannel0 はこのレイヤーより下の合成結果
 // 合成を「置き換え」にすると、下のレイヤーが歪んだ状態に置き換わります
+// クリッピングしたときは、クリッピング先（とその上）が iChannel0 になります
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord)
 {
@@ -367,8 +412,41 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 }
 `;
 
-const BLEND_ID = { normal: 0, add: 1, screen: 2, multiply: 3, replace: 4 };
-const BLEND_LABEL = { normal: '通常', add: '加算', screen: 'スクリーン', multiply: '乗算', replace: '置換' };
+/* ---------- 合成モード（クリスタの名称に準拠） ---------- */
+const BLEND_GROUPS = [
+  [null, [['normal', '通常', 0], ['replace', '置き換え', 26]]],
+  ['暗くする', [['darken', '比較（暗）', 1], ['multiply', '乗算', 2], ['colorburn', '焼き込みカラー', 3],
+              ['linearburn', '焼き込み（リニア）', 4], ['subtract', '減算', 5]]],
+  ['明るくする', [['lighten', '比較（明）', 6], ['screen', 'スクリーン', 7], ['colordodge', '覆い焼きカラー', 8],
+                ['glowdodge', '覆い焼き（発光）', 9], ['add', '加算', 10], ['addglow', '加算（発光）', 11]]],
+  ['コントラスト', [['overlay', 'オーバーレイ', 12], ['softlight', 'ソフトライト', 13], ['hardlight', 'ハードライト', 14],
+                  ['vividlight', 'ビビッドライト', 17], ['linearlight', 'リニアライト', 18], ['pinlight', 'ピンライト', 19],
+                  ['hardmix', 'ハードミックス', 20]]],
+  ['差', [['difference', '差の絶対値', 15], ['exclusion', '除外', 16], ['divide', '除算', 21]]],
+  ['色', [['hue', '色相', 22], ['saturation', '彩度', 23], ['color', 'カラー', 24], ['luminosity', '輝度', 25]]],
+];
+const BLEND_ID = {}, BLEND_LABEL = {};
+for (const [, items] of BLEND_GROUPS) for (const [k, label, id] of items) { BLEND_ID[k] = id; BLEND_LABEL[k] = label; }
+(() => {
+  const selEl = $('#pBlend');
+  for (const [g, items] of BLEND_GROUPS) {
+    const parent = g ? Object.assign(document.createElement('optgroup'), { label: g }) : selEl;
+    for (const [k, label] of items) parent.appendChild(new Option(label, k));
+    if (g) selEl.appendChild(parent);
+  }
+})();
+
+/* ---------- 加工 ---------- */
+const FX_DEFAULT = { key: 'none', colorOn: false, color: '#3a6df0', bright: 0, contrast: 0, hue: 0, sat: 0, light: 0,
+  posterize: 0, invert: false, outline: 0, outlineColor: '#ffffff', blur: 0 };
+const FX_SLIDERS = [
+  ['bright', '明るさ', -100, 100], ['contrast', 'コントラスト', -100, 100], ['hue', '色相', -180, 180],
+  ['sat', '彩度', -100, 100], ['light', '明度', -100, 100], ['posterize', '階調化', 0, 32],
+  ['outline', 'フチ px', 0, 40], ['blur', 'ぼかし px', 0, 100],
+];
+const fxColorActive = f => f.key !== 'none' || f.colorOn || f.bright || f.contrast || f.hue || f.sat || f.light || f.invert || f.posterize >= 2;
+const fxActive = f => fxColorActive(f) || f.outline > 0 || f.blur > 0;
+const hex2rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
 
 /* ================================================================
    WebGL setup
@@ -387,57 +465,229 @@ void main() {
   vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);
   gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
 }`;
-
 const FS_PRE = `#version 300 es
 precision highp float;
 precision highp int;
 `;
 
-// 画像レイヤー（テクスチャは premultiplied でアップロード済み）
+// 画像レイヤー（テクスチャは premultiplied。uInv: キャンバスpx(左上原点) → 画像px）
 const FS_IMAGE = FS_PRE + `
 uniform sampler2D uTex;
-uniform vec2 uSize, uImgSize, uPos;
-uniform float uScale;
+uniform mat3 uInv;
+uniform vec2 uImg;
+uniform float uCanvasH;
 out vec4 o;
 void main() {
-  float fit = min(uSize.x / uImgSize.x, uSize.y / uImgSize.y) * uScale;
-  vec2 disp = uImgSize * fit;
-  vec2 center = vec2(uPos.x, 1.0 - uPos.y) * uSize;
-  vec2 uv = (gl_FragCoord.xy - center) / disp + 0.5;
-  o = (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) ? vec4(0.0) : texture(uTex, uv);
+  vec2 q = vec2(gl_FragCoord.x, uCanvasH - gl_FragCoord.y);
+  vec2 L = (uInv * vec3(q, 1.0)).xy;
+  vec2 fw = max(fwidth(L), vec2(1e-5));
+  vec2 dE = min(L, uImg - L) / fw;
+  float cov = clamp(min(dE.x, dE.y) + 0.5, 0.0, 1.0);   // 回転時も縁がなめらか
+  vec2 uv = vec2(L.x / uImg.x, 1.0 - L.y / uImg.y);
+  o = texture(uTex, clamp(uv, 0.0, 1.0)) * cov;
 }`;
 
-// レイヤー合成（すべて premultiplied で計算）
+const FS_COPY = FS_PRE + `
+uniform sampler2D uSrc;
+out vec4 o;
+void main() { o = texelFetch(uSrc, ivec2(gl_FragCoord.xy), 0); }`;
+
+// レイヤー合成（premultiplied）。uClip=1 のときは下地のアルファの内側だけに描く
 const FS_COMP = FS_PRE + `
 uniform sampler2D uBase, uLayer;
 uniform float uOpacity;
-uniform int uMode;
+uniform int uMode, uClip;
 out vec4 o;
+
+float burn(float b, float s)  { return b >= 1.0 ? 1.0 : (s <= 0.0 ? 0.0 : 1.0 - min(1.0, (1.0 - b) / s)); }
+float dodge(float b, float s) { return b <= 0.0 ? 0.0 : (s >= 1.0 ? 1.0 : min(1.0, b / (1.0 - s))); }
+float softD(float b) { return b <= 0.25 ? ((16.0 * b - 12.0) * b + 4.0) * b : sqrt(b); }
+float soft(float b, float s) { return s <= 0.5 ? b - (1.0 - 2.0 * s) * b * (1.0 - b) : b + (2.0 * s - 1.0) * (softD(b) - b); }
+float hard(float b, float s) { return s <= 0.5 ? b * 2.0 * s : 1.0 - (1.0 - b) * (1.0 - (2.0 * s - 1.0)); }
+float vivid(float b, float s) { return s < 0.5 ? burn(b, 2.0 * s) : dodge(b, 2.0 * s - 1.0); }
+float pin(float b, float s) { return s < 0.5 ? min(b, 2.0 * s) : max(b, 2.0 * s - 1.0); }
+float divi(float b, float s) { return s <= 0.0 ? (b > 0.0 ? 1.0 : 0.0) : min(1.0, b / s); }
+#define PER(f) vec3(f(b.r, s.r), f(b.g, s.g), f(b.b, s.b))
+
+float lum(vec3 c) { return dot(c, vec3(0.3, 0.59, 0.11)); }
+vec3 clipColor(vec3 c) {
+  float l = lum(c), n = min(min(c.r, c.g), c.b), x = max(max(c.r, c.g), c.b);
+  if (n < 0.0) c = l + (c - l) * l / (l - n);
+  if (x > 1.0) c = l + (c - l) * (1.0 - l) / (x - l);
+  return c;
+}
+vec3 setLum(vec3 c, float l) { return clipColor(c + (l - lum(c))); }
+float satOf(vec3 c) { return max(max(c.r, c.g), c.b) - min(min(c.r, c.g), c.b); }
+vec3 setSat(vec3 c, float s) {
+  float mx = max(max(c.r, c.g), c.b), mn = min(min(c.r, c.g), c.b);
+  return mx > mn ? (c - mn) * s / (mx - mn) : vec3(0.0);
+}
+
+vec3 blendF(int m, vec3 b, vec3 s) {
+  switch (m) {
+    case 1:  return min(b, s);
+    case 2:  return b * s;
+    case 3:  return PER(burn);
+    case 4:  return max(b + s - 1.0, 0.0);
+    case 5:  return max(b - s, 0.0);
+    case 6:  return max(b, s);
+    case 7:  return b + s - b * s;
+    case 8:  return PER(dodge);
+    case 9:  return PER(dodge);
+    case 10: return min(b + s, 1.0);
+    case 12: return vec3(hard(s.r, b.r), hard(s.g, b.g), hard(s.b, b.b));
+    case 13: return PER(soft);
+    case 14: return PER(hard);
+    case 15: return abs(b - s);
+    case 16: return b + s - 2.0 * b * s;
+    case 17: return PER(vivid);
+    case 18: return clamp(b + 2.0 * s - 1.0, 0.0, 1.0);
+    case 19: return PER(pin);
+    case 20: return step(1.0, b + s);
+    case 21: return PER(divi);
+    case 22: return setLum(setSat(s, satOf(b)), lum(b));
+    case 23: return setLum(setSat(b, satOf(s)), lum(b));
+    case 24: return setLum(s, lum(b));
+    case 25: return setLum(b, lum(s));
+    default: return s;
+  }
+}
+
 void main() {
   ivec2 p = ivec2(gl_FragCoord.xy);
-  vec4 b = texelFetch(uBase, p, 0);
-  vec4 l = texelFetch(uLayer, p, 0);
-  vec4 s = l * uOpacity;
-  vec4 r;
-  if (uMode == 0) {               // 通常
-    r = s + b * (1.0 - s.a);
-  } else if (uMode == 1) {        // 加算（発光）
-    r = s + b;
-    r.a = min(r.a, 1.0);
-  } else if (uMode == 2) {        // スクリーン
-    vec4 sc = clamp(s, 0.0, 1.0), bc = clamp(b, 0.0, 1.0);
-    r = sc + bc - sc * bc;
-  } else if (uMode == 3) {        // 乗算
-    vec4 sc = clamp(s, 0.0, 1.0), bc = clamp(b, 0.0, 1.0);
-    r.rgb = sc.rgb * (1.0 - bc.a) + bc.rgb * (1.0 - sc.a) + sc.rgb * bc.rgb;
-    r.a = sc.a + bc.a - sc.a * bc.a;
-  } else {                        // 置き換え
-    r = mix(b, l, uOpacity);
+  vec4 B = max(texelFetch(uBase, p, 0), 0.0);
+  vec4 L = max(texelFetch(uLayer, p, 0), 0.0);
+  B.a = min(B.a, 1.0); L.a = min(L.a, 1.0);
+  vec4 S = L * uOpacity;
+  float as = S.a, ab = B.a;
+  vec3 cs = L.a > 0.0 ? L.rgb / L.a : vec3(0.0);
+  vec3 cb = ab > 0.0 ? B.rgb / ab : vec3(0.0);
+
+  if (uClip == 1) {
+    if (ab <= 0.0) { o = vec4(0.0); return; }
+    vec3 res;
+    if (uMode == 0 || uMode == 26) res = mix(cb, cs, as);
+    else if (uMode == 11) res = cb + S.rgb;
+    else if (uMode == 9) res = min(cb / max(1.0 - min(S.rgb, vec3(1.0)), 0.001), vec3(1.0));
+    else res = mix(cb, blendF(uMode, clamp(cb, 0.0, 1.0), clamp(cs, 0.0, 1.0)), as);
+    o = vec4(res * ab, ab);
+    return;
   }
-  o = r;
+  if (uMode == 26) { o = mix(B, L, uOpacity); return; }                       // 置き換え
+  if (uMode == 0)  { o = S + B * (1.0 - as); return; }                          // 通常
+  if (uMode == 11) { o = vec4(S.rgb + B.rgb, min(as + ab, 1.0)); return; }      // 加算（発光）
+  if (uMode == 9) {                                                             // 覆い焼き（発光）
+    vec3 d = min(B.rgb / max(1.0 - min(S.rgb, vec3(1.0)), 0.001), vec3(1.0));
+    o = vec4(d + S.rgb * (1.0 - ab), as + ab - as * ab);
+    return;
+  }
+  vec3 bl = blendF(uMode, clamp(cb, 0.0, 1.0), clamp(cs, 0.0, 1.0));
+  o = vec4(S.rgb * (1.0 - ab) + B.rgb * (1.0 - as) + as * ab * bl, as + ab - as * ab);
 }`;
 
-// iChannel0 用に premultiplied → straight
+// 加工: 抜き・レイヤーカラー・色調補正
+const FS_FXCOLOR = FS_PRE + `
+uniform sampler2D uSrc;
+uniform int uKey, uColorOn, uInvert;
+uniform vec3 uColor;
+uniform float uBright, uContrast, uHue, uSat, uLight, uPoster;
+out vec4 o;
+vec3 rgb2hsl(vec3 c) {
+  float mx = max(max(c.r, c.g), c.b), mn = min(min(c.r, c.g), c.b);
+  float l = (mx + mn) * 0.5, h = 0.0, s = 0.0, d = mx - mn;
+  if (d > 1e-6) {
+    s = l > 0.5 ? d / (2.0 - mx - mn) : d / (mx + mn);
+    if (mx == c.r) h = (c.g - c.b) / d + (c.g < c.b ? 6.0 : 0.0);
+    else if (mx == c.g) h = (c.b - c.r) / d + 2.0;
+    else h = (c.r - c.g) / d + 4.0;
+    h /= 6.0;
+  }
+  return vec3(h, s, l);
+}
+vec3 hsl2rgb(vec3 h) {
+  vec3 k = clamp(abs(mod(h.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+  return h.z + h.y * (k - 0.5) * (1.0 - abs(2.0 * h.z - 1.0));
+}
+void main() {
+  vec4 p = texelFetch(uSrc, ivec2(gl_FragCoord.xy), 0);
+  if (p.a <= 0.0) { o = vec4(0.0); return; }
+  float a = min(p.a, 1.0);
+  vec3 c = p.rgb / p.a;
+  if (uKey == 1) {            // 白抜き
+    vec3 c1 = clamp(c, 0.0, 1.0);
+    float k = max(max(1.0 - c1.r, 1.0 - c1.g), 1.0 - c1.b);
+    c = k > 0.0 ? 1.0 - (1.0 - c1) / k : vec3(0.0);
+    a *= k;
+  } else if (uKey == 2) {     // 黒抜き
+    float k = clamp(max(max(c.r, c.g), c.b), 0.0, 1.0);
+    c = k > 0.0 ? min(c / k, vec3(1.0)) : vec3(0.0);
+    a *= k;
+  }
+  if (uColorOn == 1) c = uColor;
+  c += uBright;
+  c = (c - 0.5) * uContrast + 0.5;
+  if (uHue != 0.0 || uSat != 0.0 || uLight != 0.0) {
+    vec3 h = rgb2hsl(clamp(c, 0.0, 1.0));
+    h.x = fract(h.x + uHue / 360.0);
+    h.y = clamp(h.y * (1.0 + uSat), 0.0, 1.0);
+    h.z = uLight > 0.0 ? mix(h.z, 1.0, uLight) : h.z * (1.0 + uLight);
+    c = hsl2rgb(h);
+  }
+  if (uInvert == 1) c = 1.0 - clamp(c, 0.0, 1.0);
+  if (uPoster >= 2.0) c = floor(clamp(c, 0.0, 1.0) * uPoster * 0.9999) / (uPoster - 1.0);
+  c = max(c, 0.0);
+  o = vec4(c * a, a);
+}`;
+
+// 加工: フチ（アルファを膨らませて後ろに色を敷く）
+const FS_OUTLINE = FS_PRE + `
+uniform sampler2D uSrc;
+uniform vec2 uSize;
+uniform float uR;
+uniform vec3 uCol;
+out vec4 o;
+void main() {
+  vec2 p = gl_FragCoord.xy;
+  vec4 s = texelFetch(uSrc, ivec2(p), 0);
+  float m = s.a;
+  int steps = int(clamp(ceil(uR), 1.0, 16.0));
+  for (int k = 1; k <= 16; k++) {
+    if (k > steps) break;
+    float rr = uR * float(k) / float(steps);
+    for (int d = 0; d < 32; d++) {
+      float ang = 6.2831853 * (float(d) + 0.5 * float(k & 1)) / 32.0;
+      vec2 q = p + vec2(cos(ang), sin(ang)) * rr;
+      if (q.x < 0.0 || q.y < 0.0 || q.x > uSize.x || q.y > uSize.y) continue;
+      m = max(m, texture(uSrc, q / uSize).a);
+    }
+  }
+  m = min(m, 1.0);
+  o = s + vec4(uCol, 1.0) * m * (1.0 - min(s.a, 1.0));
+}`;
+
+// 加工: ガウスぼかし（2パス）
+const FS_BLUR = FS_PRE + `
+uniform sampler2D uSrc;
+uniform vec2 uSize, uDir;
+uniform float uSigma;
+out vec4 o;
+void main() {
+  float R = ceil(uSigma * 3.0);
+  float stp = max(1.0, R / 32.0);
+  vec4 acc = vec4(0.0);
+  float ws = 0.0;
+  for (int i = -32; i <= 32; i++) {
+    float x = float(i) * stp;
+    if (abs(x) > R) continue;
+    vec2 q = gl_FragCoord.xy + uDir * x;
+    float w = exp(-x * x / (2.0 * uSigma * uSigma));
+    vec4 c = (q.x < 0.0 || q.y < 0.0 || q.x > uSize.x || q.y > uSize.y) ? vec4(0.0) : texture(uSrc, q / uSize);
+    acc += c * w;
+    ws += w;
+  }
+  o = acc / ws;
+}`;
+
 const FS_UNPREMUL = FS_PRE + `
 uniform sampler2D uSrc;
 out vec4 o;
@@ -446,7 +696,6 @@ void main() {
   o = c.a > 0.0 ? vec4(min(c.rgb / c.a, 1.0), min(c.a, 1.0)) : vec4(0.0);
 }`;
 
-// 最終出力（キャンバスは straight アルファ）
 const FS_FINAL = FS_PRE + `
 uniform sampler2D uSrc;
 uniform int uBlack;
@@ -514,15 +763,18 @@ function fixedProgram(src, names) {
   for (const n of names) u[n] = gl.getUniformLocation(r.prog, n);
   return { prog: r.prog, u };
 }
-
 function initGL() {
   hasFloat = !!gl.getExtension('EXT_color_buffer_float');
   vsObj = gl.createShader(gl.VERTEX_SHADER);
   gl.shaderSource(vsObj, VERT);
   gl.compileShader(vsObj);
   vao = gl.createVertexArray();
-  P.image = fixedProgram(FS_IMAGE, ['uTex', 'uSize', 'uImgSize', 'uPos', 'uScale']);
-  P.comp = fixedProgram(FS_COMP, ['uBase', 'uLayer', 'uOpacity', 'uMode']);
+  P.image = fixedProgram(FS_IMAGE, ['uTex', 'uInv', 'uImg', 'uCanvasH']);
+  P.copy = fixedProgram(FS_COPY, ['uSrc']);
+  P.comp = fixedProgram(FS_COMP, ['uBase', 'uLayer', 'uOpacity', 'uMode', 'uClip']);
+  P.fxc = fixedProgram(FS_FXCOLOR, ['uSrc', 'uKey', 'uColorOn', 'uInvert', 'uColor', 'uBright', 'uContrast', 'uHue', 'uSat', 'uLight', 'uPoster']);
+  P.outline = fixedProgram(FS_OUTLINE, ['uSrc', 'uSize', 'uR', 'uCol']);
+  P.blur = fixedProgram(FS_BLUR, ['uSrc', 'uSize', 'uDir', 'uSigma']);
   P.unpremul = fixedProgram(FS_UNPREMUL, ['uSrc']);
   P.final = fixedProgram(FS_FINAL, ['uSrc', 'uBlack']);
   gl.disable(gl.BLEND);
@@ -547,23 +799,19 @@ function makeTarget(w, h) {
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   return { tex, fb, ok };
 }
-function freeTarget(t) { gl.deleteTexture(t.tex); gl.deleteFramebuffer(t.fb); }
+const allTargets = () => [...RT.acc, RT.layer, RT.ch, ...RT.grp, ...RT.fx];
 function ensureTargets(w, h) {
   if (RT && RT.w === w && RT.h === h) return;
-  if (RT) [RT.acc[0], RT.acc[1], RT.layer, RT.ch].forEach(freeTarget);
+  if (RT) allTargets().forEach(t => { gl.deleteTexture(t.tex); gl.deleteFramebuffer(t.fb); });
   const mk = () => makeTarget(w, h);
-  RT = { w, h, acc: [mk(), mk()], layer: mk(), ch: mk() };
-  if (hasFloat && ![RT.acc[0], RT.acc[1], RT.layer, RT.ch].every(t => t.ok)) {
+  RT = { w, h, acc: [mk(), mk()], layer: mk(), ch: mk(), grp: [mk(), mk()], fx: [mk(), mk()] };
+  if (hasFloat && !allTargets().every(t => t.ok)) {
     hasFloat = false;          // float に描けない環境は 8bit で作り直す
     RT.w = -1;
     ensureTargets(w, h);
   }
 }
-
-function bindTex(unit, tex) {
-  gl.activeTexture(gl.TEXTURE0 + unit);
-  gl.bindTexture(gl.TEXTURE_2D, tex);
-}
+function bindTex(unit, tex) { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex); }
 function drawTo(fb) {
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
   gl.viewport(0, 0, canvas.width, canvas.height);
@@ -576,6 +824,7 @@ function clearTarget(t) {
   gl.clearColor(0, 0, 0, 0);
   gl.clear(gl.COLOR_BUFFER_BIT);
 }
+function unbindAll() { bindTex(1, null); bindTex(0, null); }
 
 /* ================================================================
    Layers
@@ -587,66 +836,70 @@ const newId = () => 'L' + Date.now().toString(36) + (idCounter++).toString(36);
 const sel = () => layers.find(l => l.id === selId) || null;
 const byId = id => layers.find(l => l.id === id) || null;
 
+function common(opts) {
+  return {
+    id: opts.id || newId(), visible: opts.visible ?? true, opacity: opts.opacity ?? 1,
+    blend: BLEND_ID[opts.blend] !== undefined ? opts.blend : 'normal', clip: !!opts.clip,
+    fx: { ...FX_DEFAULT, ...(opts.fx || {}) },
+  };
+}
 function makeShaderLayer(opts = {}) {
   const n = layers.filter(l => l.type === 'shader').length + 1;
   return {
-    id: opts.id || newId(), type: 'shader', name: opts.name || `GLSL ${n}`,
-    visible: opts.visible ?? true, opacity: opts.opacity ?? 1, blend: opts.blend || 'normal',
+    ...common(opts), type: 'shader', name: opts.name || `GLSL ${n}`,
     code: opts.code ?? NEW_SHADER_CODE, alphaMode: opts.alphaMode ?? 0,
     prog: null, U: {}, error: null, errorLines: new Set(),
   };
 }
 function makeImageLayer(opts) {
   return {
-    id: opts.id || newId(), type: 'image', name: opts.name || '画像',
-    visible: opts.visible ?? true, opacity: opts.opacity ?? 1, blend: opts.blend || 'normal',
-    x: opts.x ?? 0.5, y: opts.y ?? 0.5, scale: opts.scale ?? 1,
+    ...common(opts), type: 'image', name: opts.name || '画像',
+    cx: opts.cx ?? 0, cy: opts.cy ?? 0, sx: opts.sx ?? 1, sy: opts.sy ?? 1, rot: opts.rot ?? 0,
+    flipH: !!opts.flipH, flipV: !!opts.flipV, interp: opts.interp || 'smooth',
     blob: opts.blob, url: null, tex: null, iw: 1, ih: 1,
   };
 }
+const layerReady = l => l.type === 'image' ? !!l.tex : !!l.prog;
 
 function insertLayer(l) {
+  checkpoint();
   const cur = sel();
   const i = cur ? layers.indexOf(cur) + 1 : layers.length;
+  // クリッピング中のレイヤーの上に入れたときは、新しいレイヤーもクリッピングを引き継がない
   layers.splice(i, 0, l);
   selectLayer(l.id);
   dirty = true;
   scheduleSave();
 }
-
 function removeLayer(l) {
   const i = layers.indexOf(l);
   if (i < 0) return;
+  checkpoint();
   layers.splice(i, 1);
-  if (l.type === 'shader' && l.prog) gl.deleteProgram(l.prog);
-  if (l.type === 'image') {
-    if (l.tex) gl.deleteTexture(l.tex);
-    if (l.url) URL.revokeObjectURL(l.url);
-    idb.del(l.id).catch(() => {});
-  }
+  l._removed = true;       // 取り消しで戻せるようにテクスチャは残す
   const next = layers[Math.min(i, layers.length - 1)] || null;
   selectLayer(next ? next.id : null);
   dirty = true;
   scheduleSave();
 }
-
 async function duplicateLayer(l) {
   if (!l) return;
+  const { id, ...rest } = l;
   let c;
   if (l.type === 'shader') {
-    c = makeShaderLayer({ ...l, id: null, name: l.name + ' コピー' });
+    c = makeShaderLayer({ ...rest, name: l.name + ' コピー' });
     compileLayer(c);
   } else {
-    c = makeImageLayer({ ...l, id: null, name: l.name + ' コピー' });
+    c = makeImageLayer({ ...rest, name: l.name + ' コピー' });
     await loadImageLayer(c);
     idb.put(c.id, c.blob).catch(() => {});
   }
   insertLayer(c);
 }
-
 function moveLayer(dragId, targetId, above) {
   const d = byId(dragId);
   if (!d || dragId === targetId) return;
+  checkpoint();
   layers.splice(layers.indexOf(d), 1);
   const t = layers.indexOf(byId(targetId));
   layers.splice(above ? t + 1 : t, 0, d);
@@ -654,8 +907,25 @@ function moveLayer(dragId, targetId, above) {
   dirty = true;
   scheduleSave();
 }
+function toggleClip() {
+  const l = sel();
+  if (!l) return;
+  checkpoint();
+  l.clip = !l.clip;
+  renderLayerList();
+  refreshProps();
+  dirty = true;
+  scheduleSave();
+}
 
 /* ---------- image layers ---------- */
+function applyInterp(l) {
+  if (!l.tex) return;
+  gl.bindTexture(gl.TEXTURE_2D, l.tex);
+  const near = l.interp === 'nearest';
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, near ? gl.NEAREST : gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, near ? gl.NEAREST : gl.LINEAR);
+}
 async function loadImageLayer(l) {
   const url = URL.createObjectURL(l.blob);
   const img = new Image();
@@ -680,27 +950,48 @@ async function loadImageLayer(l) {
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
   gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
   gl.generateMipmap(gl.TEXTURE_2D);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   l.tex = tex;
   l.url = url;
+  applyInterp(l);
 }
-
 async function addImageFiles(files) {
   const imgs = [...files].filter(f => f.type.startsWith('image/'));
+  const s = S();
   for (const f of imgs) {
     const l = makeImageLayer({ name: f.name || '貼り付け画像', blob: f });
-    try {
-      await loadImageLayer(l);
-    } catch (e) {
-      setStatus(`${f.name} を読み込めませんでした`);
-      continue;
-    }
+    try { await loadImageLayer(l); }
+    catch (e) { setStatus(`${f.name} を読み込めませんでした`); continue; }
+    const k = Math.min(1, s.w / l.iw, s.h / l.ih);   // キャンバスより大きければ収める
+    Object.assign(l, { cx: s.w / 2, cy: s.h / 2, sx: k, sy: k });
     insertLayer(l);
     idb.put(l.id, f).catch(() => {});
   }
+}
+
+/* ---------- image transform math（出力px・左上原点・y下向き） ---------- */
+function tf(l) {
+  const t = l.rot * Math.PI / 180;
+  return { c: Math.cos(t), s: Math.sin(t), ssx: l.sx * (l.flipH ? -1 : 1), ssy: l.sy * (l.flipV ? -1 : 1) };
+}
+function localToOut(l, Lx, Ly) {
+  const { c, s, ssx, ssy } = tf(l);
+  const x = (Lx - l.iw / 2) * ssx, y = (Ly - l.ih / 2) * ssy;
+  return [l.cx + c * x - s * y, l.cy + s * x + c * y];
+}
+function outToLocal(l, ox, oy) {
+  const { c, s, ssx, ssy } = tf(l);
+  const vx = ox - l.cx, vy = oy - l.cy;
+  return [l.iw / 2 + (c * vx + s * vy) / ssx, l.ih / 2 + (-s * vx + c * vy) / ssy];
+}
+function imageInvMatrix(l, ps) {
+  const { c, s, ssx, ssy } = tf(l);
+  return new Float32Array([
+    c / (ps * ssx), -s / (ps * ssy), 0,
+    s / (ps * ssx), c / (ps * ssy), 0,
+    l.iw / 2 - (c * l.cx + s * l.cy) / ssx, l.ih / 2 - (-s * l.cx + c * l.cy) / ssy, 1,
+  ]);
 }
 
 /* ---------- shader layers ---------- */
@@ -725,7 +1016,6 @@ function compileLayer(l) {
   dirty = true;
   return !l.error;
 }
-
 function parseErrors(info, userLines) {
   const lines = new Set(), out = [];
   for (const raw of info.split('\n')) {
@@ -740,6 +1030,65 @@ function parseErrors(info, userLines) {
   }
   return { text: out.join('\n'), lines };
 }
+
+/* ================================================================
+   Undo / Redo（レイヤー構成・プロパティ・変形・加工。コード編集はエディタ側の取り消し）
+   ================================================================ */
+const PROP_KEYS = ['name','visible','opacity','blend','clip','alphaMode','cx','cy','sx','sy','rot','flipH','flipV','interp'];
+const hist = { undo: [], redo: [], key: null, time: 0 };
+function snapshot() {
+  return {
+    selId,
+    items: layers.map(l => {
+      const p = {};
+      for (const k of PROP_KEYS) if (k in l) p[k] = l[k];
+      p.fx = { ...l.fx };
+      return { l, p };
+    }),
+  };
+}
+function checkpoint(key) {
+  if (booting) return;
+  const now = performance.now();
+  if (key && key === hist.key && now - hist.time < 1200) { hist.time = now; return; }
+  hist.undo.push(snapshot());
+  if (hist.undo.length > 120) hist.undo.shift();
+  hist.redo = [];
+  hist.key = key || null;
+  hist.time = now;
+  updateUndoButtons();
+}
+function restoreSnapshot(snap) {
+  layers = snap.items.map(({ l, p }) => {
+    Object.assign(l, p, { fx: { ...p.fx } });
+    if (l.type === 'image') applyInterp(l);
+    if (l._removed) { l._removed = false; if (l.type === 'image') idb.put(l.id, l.blob).catch(() => {}); }
+    return l;
+  });
+  selectLayer(byId(snap.selId) ? snap.selId : (layers.at(-1)?.id ?? null));
+  dirty = true;
+  scheduleSave();
+}
+function undo() {
+  if (!hist.undo.length) return;
+  hist.redo.push(snapshot());
+  restoreSnapshot(hist.undo.pop());
+  hist.key = null;
+  updateUndoButtons();
+}
+function redo() {
+  if (!hist.redo.length) return;
+  hist.undo.push(snapshot());
+  restoreSnapshot(hist.redo.pop());
+  hist.key = null;
+  updateUndoButtons();
+}
+function updateUndoButtons() {
+  $('#undoBtn').disabled = !hist.undo.length;
+  $('#redoBtn').disabled = !hist.redo.length;
+}
+$('#undoBtn').addEventListener('click', undo);
+$('#redoBtn').addEventListener('click', redo);
 
 /* ================================================================
    Layer panel UI
@@ -760,6 +1109,7 @@ function renderLayerList() {
     li.draggable = true;
     if (l.id === selId) li.classList.add('sel');
     if (!l.visible) li.classList.add('off');
+    if (l.clip && i > 0) li.classList.add('clip');
 
     const eye = document.createElement('button');
     eye.className = 'eye';
@@ -767,6 +1117,7 @@ function renderLayerList() {
     eye.innerHTML = l.visible ? EYE_ON : EYE_OFF;
     eye.addEventListener('click', e => {
       e.stopPropagation();
+      checkpoint();
       l.visible = !l.visible;
       renderLayerList();
       dirty = true;
@@ -785,6 +1136,8 @@ function renderLayerList() {
       thumb.textContent = 'GLSL';
     }
 
+    const nameBox = document.createElement('div');
+    nameBox.style.cssText = 'flex:1;min-width:0';
     const name = document.createElement('div');
     name.className = 'lname';
     name.textContent = l.name;
@@ -794,9 +1147,8 @@ function renderLayerList() {
     const bits = [];
     if (l.blend !== 'normal') bits.push(BLEND_LABEL[l.blend]);
     if (l.opacity < 1) bits.push(Math.round(l.opacity * 100) + '%');
+    if (fxActive(l.fx)) bits.push('加工');
     meta.textContent = bits.join(' · ');
-    const nameBox = document.createElement('div');
-    nameBox.style.cssText = 'flex:1;min-width:0';
     nameBox.append(name, meta);
 
     li.append(eye, thumb, nameBox);
@@ -810,7 +1162,7 @@ function renderLayerList() {
     li.addEventListener('click', () => selectLayer(l.id));
     li.addEventListener('dblclick', () => {
       const n = prompt('レイヤー名', l.name);
-      if (n && n.trim()) { l.name = n.trim(); renderLayerList(); updateEditingLabel(); scheduleSave(); }
+      if (n && n.trim()) { checkpoint(); l.name = n.trim(); renderLayerList(); updateEditingLabel(); scheduleSave(); }
     });
     li.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/x-layer', l.id);
@@ -843,73 +1195,132 @@ function selectLayer(id) {
   renderLayerList();
   refreshProps();
   loadEditor();
-  const l = sel();
-  canvas.style.cursor = l && l.type === 'image' ? 'move' : 'crosshair';
+  updateCursor();
   scheduleSave();
+}
+
+/* ---------- properties ---------- */
+const fxInputs = {};
+(() => {
+  const box = $('#fxSliders');
+  for (const [k, label, min, max] of FX_SLIDERS) {
+    const row = document.createElement('div');
+    row.className = 'prow';
+    row.innerHTML = `<span>${label}</span><input type="range" min="${min}" max="${max}" step="1"><input type="number" min="${min}" max="${max}" step="1">`;
+    const [r, n] = row.querySelectorAll('input');
+    fxInputs[k] = { r, n };
+    r.addEventListener('input', () => { n.value = r.value; setFx(k, +r.value); });
+    n.addEventListener('change', () => { const v = Math.min(max, Math.max(min, +n.value || 0)); r.value = n.value = v; setFx(k, v); });
+    box.appendChild(row);
+  }
+})();
+function setFx(k, v) {
+  const l = sel(); if (!l) return;
+  checkpoint('fx-' + k + l.id);
+  l.fx[k] = v;
+  propChanged();
 }
 
 function refreshProps() {
   const l = sel();
   $('#props').hidden = !l;
+  $('#clipBtn').classList.toggle('on', !!(l && l.clip));
+  $('#clipBtn').disabled = !l;
+  $('#dupLayer').disabled = $('#delLayer').disabled = !l;
   if (!l) return;
   document.querySelectorAll('#props [data-for]').forEach(el => { el.hidden = el.dataset.for !== l.type; });
-  $('#pOpacity').value = Math.round(l.opacity * 100);
-  $('#pOpacityN').value = Math.round(l.opacity * 100);
+  $('#pOpacity').value = $('#pOpacityN').value = Math.round(l.opacity * 100);
   $('#pBlend').value = l.blend;
   if (l.type === 'shader') $('#pAlpha').value = l.alphaMode;
   else refreshImageProps(l);
+  const f = l.fx;
+  $('#fxKey').value = f.key;
+  $('#fxColorOn').checked = f.colorOn;
+  $('#fxColor').value = f.color;
+  $('#fxInvert').checked = f.invert;
+  $('#fxOutlineColor').value = f.outlineColor;
+  for (const [k] of FX_SLIDERS) fxInputs[k].r.value = fxInputs[k].n.value = f[k];
+  $('#fxBox').querySelector('summary').textContent = fxActive(f) ? '加工 ●' : '加工';
 }
 function refreshImageProps(l) {
-  $('#pX').value = +(l.x * 100).toFixed(1);
-  $('#pY').value = +(l.y * 100).toFixed(1);
-  $('#pScale').value = Math.round(l.scale * 100);
-  $('#pScaleN').value = Math.round(l.scale * 100);
+  if (l !== sel()) return;
+  $('#pCX').value = +l.cx.toFixed(1);
+  $('#pCY').value = +l.cy.toFixed(1);
+  $('#pSW').value = +(l.sx * 100).toFixed(1);
+  $('#pSH').value = +(l.sy * 100).toFixed(1);
+  const r = +(((l.rot + 180) % 360 + 360) % 360 - 180).toFixed(1);
+  $('#pRot').value = r;
+  $('#pRotN').value = r;
+  $('#pInterp').value = l.interp;
 }
+function propChanged() { dirty = true; renderLayerList(); refreshProps(); scheduleSave(); }
+const withImage = fn => () => { const l = sel(); if (l && l.type === 'image') fn(l); };
 
-function propChanged() { dirty = true; renderLayerList(); scheduleSave(); }
 $('#pOpacity').addEventListener('input', () => {
   const l = sel(); if (!l) return;
+  checkpoint('op' + l.id);
   l.opacity = +$('#pOpacity').value / 100;
-  $('#pOpacityN').value = $('#pOpacity').value;
   propChanged();
 });
 $('#pOpacityN').addEventListener('change', () => {
   const l = sel(); if (!l) return;
+  checkpoint();
   l.opacity = Math.min(1, Math.max(0, (+$('#pOpacityN').value || 0) / 100));
-  refreshProps(); propChanged();
+  propChanged();
 });
-$('#pBlend').addEventListener('change', () => { const l = sel(); if (!l) return; l.blend = $('#pBlend').value; propChanged(); });
-$('#pAlpha').addEventListener('change', () => { const l = sel(); if (!l) return; l.alphaMode = +$('#pAlpha').value; propChanged(); });
-['#pX', '#pY'].forEach(id => $(id).addEventListener('change', () => {
-  const l = sel(); if (!l || l.type !== 'image') return;
-  l.x = (+$('#pX').value || 0) / 100;
-  l.y = (+$('#pY').value || 0) / 100;
+$('#pBlend').addEventListener('change', () => { const l = sel(); if (!l) return; checkpoint(); l.blend = $('#pBlend').value; propChanged(); });
+$('#pAlpha').addEventListener('change', () => { const l = sel(); if (!l) return; checkpoint(); l.alphaMode = +$('#pAlpha').value; propChanged(); });
+$('#pCX').addEventListener('change', withImage(l => { checkpoint(); l.cx = +$('#pCX').value || 0; propChanged(); }));
+$('#pCY').addEventListener('change', withImage(l => { checkpoint(); l.cy = +$('#pCY').value || 0; propChanged(); }));
+$('#pSW').addEventListener('change', withImage(l => {
+  checkpoint();
+  const v = Math.max(0.1, +$('#pSW').value || 100) / 100;
+  if ($('#pLock').checked) l.sy *= v / l.sx;
+  l.sx = v;
   propChanged();
 }));
-$('#pScale').addEventListener('input', () => {
-  const l = sel(); if (!l || l.type !== 'image') return;
-  l.scale = +$('#pScale').value / 100;
-  $('#pScaleN').value = $('#pScale').value;
+$('#pSH').addEventListener('change', withImage(l => {
+  checkpoint();
+  const v = Math.max(0.1, +$('#pSH').value || 100) / 100;
+  if ($('#pLock').checked) l.sx *= v / l.sy;
+  l.sy = v;
   propChanged();
-});
-$('#pScaleN').addEventListener('change', () => {
-  const l = sel(); if (!l || l.type !== 'image') return;
-  l.scale = Math.max(0.01, (+$('#pScaleN').value || 100) / 100);
-  refreshImageProps(l); propChanged();
-});
-$('#pReset').addEventListener('click', () => {
-  const l = sel(); if (!l || l.type !== 'image') return;
-  l.x = 0.5; l.y = 0.5; l.scale = 1;
-  refreshImageProps(l); propChanged();
-});
-$('#pFitOut').addEventListener('click', () => {
-  const l = sel(); if (!l || l.type !== 'image') return;
+}));
+$('#pRot').addEventListener('input', withImage(l => { checkpoint('rot' + l.id); l.rot = +$('#pRot').value; $('#pRotN').value = l.rot; dirty = true; scheduleSave(); }));
+$('#pRotN').addEventListener('change', withImage(l => { checkpoint(); l.rot = +$('#pRotN').value || 0; propChanged(); }));
+$('#pFlipH').addEventListener('click', withImage(l => { checkpoint(); l.flipH = !l.flipH; propChanged(); }));
+$('#pFlipV').addEventListener('click', withImage(l => { checkpoint(); l.flipV = !l.flipV; propChanged(); }));
+$('#pReset').addEventListener('click', withImage(l => {
+  checkpoint();
+  const s = S();
+  Object.assign(l, { cx: s.w / 2, cy: s.h / 2, sx: 1, sy: 1, rot: 0, flipH: false, flipV: false });
+  propChanged();
+}));
+$('#pFitCanvas').addEventListener('click', withImage(l => {
+  checkpoint();
+  const s = S();
+  const k = Math.min(s.w / l.iw, s.h / l.ih);
+  Object.assign(l, { cx: s.w / 2, cy: s.h / 2, sx: k, sy: k, rot: 0 });
+  propChanged();
+}));
+$('#pFitOut').addEventListener('click', withImage(l => {
+  checkpoint();
   $('#w').value = l.iw; $('#h').value = l.ih;
-  l.x = 0.5; l.y = 0.5; l.scale = 1;
-  refreshImageProps(l);
+  Object.assign(l, { cx: l.iw / 2, cy: l.ih / 2, sx: 1, sy: 1, rot: 0 });
   onSettingsChange();
+  fitView();
   propChanged();
-});
+}));
+$('#pInterp').addEventListener('change', withImage(l => { checkpoint(); l.interp = $('#pInterp').value; applyInterp(l); propChanged(); }));
+
+$('#fxKey').addEventListener('change', () => { const l = sel(); if (!l) return; checkpoint(); l.fx.key = $('#fxKey').value; propChanged(); });
+$('#fxColorOn').addEventListener('change', () => { const l = sel(); if (!l) return; checkpoint(); l.fx.colorOn = $('#fxColorOn').checked; propChanged(); });
+$('#fxColor').addEventListener('input', () => { const l = sel(); if (!l) return; checkpoint('fxc' + l.id); l.fx.color = $('#fxColor').value; dirty = true; scheduleSave(); });
+$('#fxInvert').addEventListener('change', () => { const l = sel(); if (!l) return; checkpoint(); l.fx.invert = $('#fxInvert').checked; propChanged(); });
+$('#fxOutlineColor').addEventListener('input', () => { const l = sel(); if (!l) return; checkpoint('fxo' + l.id); l.fx.outlineColor = $('#fxOutlineColor').value; dirty = true; scheduleSave(); });
+$('#fxReset').addEventListener('click', () => { const l = sel(); if (!l) return; checkpoint(); l.fx = { ...FX_DEFAULT }; propChanged(); });
+
+$('#clipBtn').addEventListener('click', toggleClip);
 $('#dupLayer').addEventListener('click', () => duplicateLayer(sel()));
 $('#delLayer').addEventListener('click', () => { const l = sel(); if (l) removeLayer(l); });
 $('#addShader').addEventListener('click', () => {
@@ -973,7 +1384,6 @@ function updateEditingLabel() {
   const l = sel();
   $('#editing').textContent = l && l.type === 'shader' ? '編集中：' + l.name : '';
 }
-
 function updateGutter() {
   const l = sel();
   const errs = l && l.type === 'shader' ? l.errorLines : new Set();
@@ -989,7 +1399,7 @@ function showLayerLog() {
   const l = sel();
   if (!l) { log.textContent = ''; log.className = 'log'; return; }
   if (l.type === 'image') {
-    log.textContent = `画像 ${l.iw}×${l.ih}　プレビュー上でドラッグで移動、ホイールで拡大縮小`;
+    log.textContent = `画像 ${l.iw}×${l.ih}\n枠の内側ドラッグ：移動（Shiftで水平・垂直）　□ハンドル：拡大縮小（Shiftで縦横比固定を切替・Altで中心基準）\n枠の外ドラッグ：回転（Shiftで15°刻み）　矢印キー：1px移動（Shiftで10px）\nホイール：表示倍率　Space＋ドラッグ／中ボタン：表示移動　Ctrl/⌘+0：全体表示　Ctrl/⌘+クリック：画像レイヤーを選択`;
     log.className = 'log info';
   } else if (l.error) {
     log.textContent = l.error; log.className = 'log err';
@@ -1008,7 +1418,6 @@ code.addEventListener('keydown', e => {
     const l = sel(); if (l && l.type === 'shader') compileLayer(l);
   }
 });
-
 let compileTimer = 0;
 function onCodeInput() {
   const l = sel();
@@ -1041,13 +1450,13 @@ presetSel.addEventListener('change', () => {
   }
   const untouched = !l.code.trim() || l.code === NEW_SHADER_CODE || PRESETS.some(q => q.code === l.code);
   if (!untouched && !confirm(`「${l.name}」のコードを置き換えます。よろしいですか？`)) return;
+  checkpoint();
   Object.assign(l, { name: p.name, code: p.code, alphaMode: p.alphaMode, blend: p.blend });
   loadEditor();
   refreshProps();
   compileLayer(l);
   scheduleSave();
 });
-
 $('#btnSave').addEventListener('click', () => {
   const l = sel();
   if (!l || l.type !== 'shader') return setStatus('GLSLレイヤーを選んでください');
@@ -1058,6 +1467,7 @@ async function openShaderFile(f) {
   const base = f.name.replace(/\.[^.]+$/, '');
   const l = sel();
   if (l && l.type === 'shader') {
+    checkpoint();
     Object.assign(l, { code: text, name: base });
     loadEditor();
     compileLayer(l);
@@ -1075,7 +1485,7 @@ $('#fileOpen').addEventListener('change', async e => {
 });
 
 /* ================================================================
-   Settings
+   Settings / View
    ================================================================ */
 const num = (id, def, min, max) => {
   let v = parseFloat($(id).value);
@@ -1103,14 +1513,44 @@ function applyResolution(scale) {
   canvas.height = Math.max(1, Math.round(s.h * sc));
   dirty = true;
 }
+
+// 表示（クリスタの表示倍率・スクロールに相当）
+const view = { zoom: 1, panX: 0, panY: 0, k: 1, k0: 1, left: 0, top: 0 };
+const overlay = $('#overlay');
+const octx = overlay.getContext('2d');
 function fitStage() {
   const s = S();
-  const bw = previewEl.clientWidth - 32, bh = previewEl.clientHeight - 32;
-  const k = Math.max(0.01, Math.min(bw / s.w, bh / s.h));
-  const stage = $('#stage');
-  stage.style.width = Math.max(1, Math.floor(s.w * k)) + 'px';
-  stage.style.height = Math.max(1, Math.floor(s.h * k)) + 'px';
+  const pw = previewEl.clientWidth, ph = previewEl.clientHeight;
+  view.k0 = Math.max(0.001, Math.min((pw - 40) / s.w, (ph - 40) / s.h));
+  view.k = view.k0 * view.zoom;
+  const w = s.w * view.k, h = s.h * view.k;
+  view.left = (pw - w) / 2 + view.panX;
+  view.top = (ph - h) / 2 + view.panY;
+  const st = $('#stage').style;
+  st.left = view.left + 'px'; st.top = view.top + 'px';
+  st.width = w + 'px'; st.height = h + 'px';
+  const dpr = window.devicePixelRatio || 1;
+  if (overlay.width !== Math.round(pw * dpr) || overlay.height !== Math.round(ph * dpr)) {
+    overlay.width = Math.round(pw * dpr);
+    overlay.height = Math.round(ph * dpr);
+  }
+  $('#zoomChip').textContent = Math.round(view.k * 100) + '%';
 }
+function zoomAt(factor, mx, my) {
+  const s = S();
+  const pw = previewEl.clientWidth, ph = previewEl.clientHeight;
+  if (mx === undefined) { mx = pw / 2; my = ph / 2; }
+  const ox = (mx - view.left) / view.k, oy = (my - view.top) / view.k;
+  const k = Math.min(32, Math.max(0.02, view.k * factor));
+  view.zoom = k / view.k0;
+  view.panX = (mx - ox * k) - (pw - s.w * k) / 2;
+  view.panY = (my - oy * k) - (ph - s.h * k) / 2;
+  fitStage();
+}
+function fitView() { view.zoom = 1; view.panX = 0; view.panY = 0; fitStage(); }
+function actualPixels() { view.zoom = 1 / view.k0; view.panX = 0; view.panY = 0; fitStage(); }
+$('#zoomChip').addEventListener('click', fitView);
+
 function updateFrameInfo() {
   const s = S();
   const n = frameCountOf(s);
@@ -1128,7 +1568,6 @@ function onSettingsChange() {
 ['#w','#h','#fps','#dur','#start','#prefix','#blackBg','#pscale'].forEach(id =>
   $(id).addEventListener('change', onSettingsChange));
 ['#w','#h','#fps','#dur','#start'].forEach(id => $(id).addEventListener('input', updateFrameInfo));
-window.addEventListener('resize', fitStage);
 new ResizeObserver(fitStage).observe(previewEl);
 
 function applyBg() {
@@ -1147,114 +1586,409 @@ function applyBg() {
 $('#bgMode').addEventListener('change', applyBg);
 $('#bgColor').addEventListener('input', applyBg);
 
-/* ---------- pointer: 画像の移動 / iMouse ---------- */
+/* ================================================================
+   変形ツール（オーバーレイ上の操作）
+   ================================================================ */
+const HANDLES = [
+  ['nw', 0, 0], ['n', 0.5, 0], ['ne', 1, 0], ['e', 1, 0.5],
+  ['se', 1, 1], ['s', 0.5, 1], ['sw', 0, 1], ['w', 0, 0.5],
+];
+const ROT_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 2-5" fill="none" stroke="#000" stroke-width="4"/><path d="M5 12a7 7 0 1 0 2-5" fill="none" stroke="#fff" stroke-width="2"/><path d="M3 3v6h6z" fill="#fff" stroke="#000"/></svg>')}") 12 12, auto`;
+
 const mouse = { x: 0, y: 0, cx: 0, cy: 0, down: false };
-let imgDrag = null;
-function mousePos(e) {
-  const r = canvas.getBoundingClientRect();
-  return [(e.clientX - r.left) / r.width, 1 - (e.clientY - r.top) / r.height];
+let op = null, spaceDown = false, hoverInfo = null;
+
+const toScreen = (ox, oy) => [view.left + ox * view.k, view.top + oy * view.k];
+const toOut = (mx, my) => [(mx - view.left) / view.k, (my - view.top) / view.k];
+function localPoint(e) {
+  const r = previewEl.getBoundingClientRect();
+  return [e.clientX - r.left, e.clientY - r.top];
 }
-canvas.addEventListener('pointerdown', e => {
-  canvas.setPointerCapture(e.pointerId);
+
+function hitTest(l, mx, my) {
+  for (const [id, hx, hy] of HANDLES) {
+    const [sx, sy] = toScreen(...localToOut(l, hx * l.iw, hy * l.ih));
+    if (Math.hypot(mx - sx, my - sy) <= 9) return { type: 'handle', id, hx, hy };
+  }
+  const [Lx, Ly] = outToLocal(l, ...toOut(mx, my));
+  if (Lx >= 0 && Ly >= 0 && Lx <= l.iw && Ly <= l.ih) return { type: 'inside' };
+  return { type: 'outside' };
+}
+function resizeCursor(l, hx, hy) {
+  const [cx, cy] = toScreen(l.cx, l.cy);
+  const [sx, sy] = toScreen(...localToOut(l, hx * l.iw, hy * l.ih));
+  const a = ((Math.atan2(sy - cy, sx - cx) * 180 / Math.PI) % 180 + 180) % 180;
+  return a < 22.5 || a >= 157.5 ? 'ew-resize' : a < 67.5 ? 'nwse-resize' : a < 112.5 ? 'ns-resize' : 'nesw-resize';
+}
+function updateCursor(mx, my) {
+  if (op) return;
+  if (spaceDown) { overlay.style.cursor = 'grab'; return; }
   const l = sel();
-  if (l && l.type === 'image') {
-    imgDrag = { l, sx: e.clientX, sy: e.clientY, x: l.x, y: l.y, r: canvas.getBoundingClientRect() };
+  if (!l || l.type !== 'image' || !l.visible || mx === undefined) {
+    overlay.style.cursor = l && l.type === 'image' ? 'default' : 'crosshair';
     return;
   }
-  [mouse.x, mouse.y] = mousePos(e);
-  mouse.cx = mouse.x; mouse.cy = mouse.y; mouse.down = true;
-  dirty = true;
-});
-canvas.addEventListener('pointermove', e => {
-  if (imgDrag) {
-    imgDrag.l.x = imgDrag.x + (e.clientX - imgDrag.sx) / imgDrag.r.width;
-    imgDrag.l.y = imgDrag.y + (e.clientY - imgDrag.sy) / imgDrag.r.height;
-    if (imgDrag.l === sel()) refreshImageProps(imgDrag.l);
-    dirty = true;
-  } else if (mouse.down) {
-    [mouse.x, mouse.y] = mousePos(e);
-    dirty = true;
+  const h = hitTest(l, mx, my);
+  hoverInfo = h;
+  overlay.style.cursor = h.type === 'handle' ? resizeCursor(l, h.hx, h.hy) : h.type === 'inside' ? 'move' : ROT_CURSOR;
+}
+
+function pickImageAt(mx, my) {
+  const [ox, oy] = toOut(mx, my);
+  for (let i = layers.length - 1; i >= 0; i--) {
+    const l = layers[i];
+    if (l.type !== 'image' || !l.visible) continue;
+    const [Lx, Ly] = outToLocal(l, ox, oy);
+    if (Lx >= 0 && Ly >= 0 && Lx <= l.iw && Ly <= l.ih) { selectLayer(l.id); return true; }
   }
-});
-canvas.addEventListener('pointerup', () => {
-  if (imgDrag) { imgDrag = null; scheduleSave(); }
-  mouse.down = false;
+  return false;
+}
+
+overlay.addEventListener('pointerdown', e => {
+  const [mx, my] = localPoint(e);
+  if (e.button === 1 || (e.button === 0 && spaceDown)) {
+    e.preventDefault();
+    overlay.setPointerCapture(e.pointerId);
+    op = { type: 'pan', sx: e.clientX, sy: e.clientY, px: view.panX, py: view.panY };
+    overlay.style.cursor = 'grabbing';
+    return;
+  }
+  if (e.button !== 0) return;
+  if (e.ctrlKey || e.metaKey) { pickImageAt(mx, my); return; }
+  overlay.setPointerCapture(e.pointerId);
+  const l = sel();
+  if (l && l.type === 'image' && l.visible) {
+    const [ox, oy] = toOut(mx, my);
+    const h = hitTest(l, mx, my);
+    checkpoint();
+    const base = { l, ox, oy, cx: l.cx, cy: l.cy, rot: l.rot, ...tf(l) };
+    if (h.type === 'handle') {
+      op = { ...base, type: 'scale', hx: h.hx, hy: h.hy, ssx0: base.ssx, ssy0: base.ssy };
+    } else if (h.type === 'inside') {
+      op = { ...base, type: 'move' };
+    } else {
+      op = { ...base, type: 'rotate', a0: Math.atan2(oy - l.cy, ox - l.cx) };
+    }
+    return;
+  }
+  // GLSL レイヤー選択中は iMouse
+  const [ox, oy] = toOut(mx, my);
+  const s = S();
+  mouse.x = mouse.cx = ox / s.w;
+  mouse.y = mouse.cy = 1 - oy / s.h;
+  mouse.down = true;
   dirty = true;
 });
-canvas.addEventListener('wheel', e => {
-  const l = sel();
-  if (!l || l.type !== 'image') return;
-  e.preventDefault();
-  l.scale = Math.min(20, Math.max(0.01, l.scale * Math.exp(-e.deltaY * 0.0015)));
+
+overlay.addEventListener('pointermove', e => {
+  const [mx, my] = localPoint(e);
+  if (!op) {
+    if (mouse.down) {
+      const [ox, oy] = toOut(mx, my);
+      const s = S();
+      mouse.x = ox / s.w; mouse.y = 1 - oy / s.h;
+      dirty = true;
+    }
+    updateCursor(mx, my);
+    return;
+  }
+  if (op.type === 'pan') {
+    view.panX = op.px + (e.clientX - op.sx);
+    view.panY = op.py + (e.clientY - op.sy);
+    fitStage();
+    return;
+  }
+  const l = op.l;
+  const [ox, oy] = toOut(mx, my);
+  if (op.type === 'move') {
+    let dx = ox - op.ox, dy = oy - op.oy;
+    if (e.shiftKey) { if (Math.abs(dx) > Math.abs(dy)) dy = 0; else dx = 0; }
+    l.cx = op.cx + dx;
+    l.cy = op.cy + dy;
+  } else if (op.type === 'rotate') {
+    let r = op.rot + (Math.atan2(oy - op.cy, ox - op.cx) - op.a0) * 180 / Math.PI;
+    if (e.shiftKey) r = Math.round(r / 15) * 15;
+    l.rot = r;
+  } else if (op.type === 'scale') {
+    applyScaleDrag(op, ox, oy, e.shiftKey, e.altKey);
+  }
   refreshImageProps(l);
   dirty = true;
-  scheduleSave();
+});
+
+function applyScaleDrag(o, ox, oy, shift, alt) {
+  const l = o.l;
+  const { c, s, ssx0, ssy0, hx, hy } = o;
+  // 中心基準のローカル座標（画像px）
+  const h = [(hx - 0.5) * l.iw, (hy - 0.5) * l.ih];
+  const A = alt ? [0, 0] : [-h[0], -h[1]];
+  // ドラッグ開始時のアンカー位置（出力px）
+  const ax0 = A[0] * ssx0, ay0 = A[1] * ssy0;
+  const PA = [o.cx + c * ax0 - s * ay0, o.cy + s * ax0 + c * ay0];
+  const vx = ox - PA[0], vy = oy - PA[1];
+  const d = [c * vx + s * vy, -s * vx + c * vy];          // 回転を戻した移動量
+  const lock = $('#pLock').checked !== shift;
+  const fix = v => (Math.abs(v) < 1e-3 ? (v < 0 ? -1e-3 : 1e-3) : v);
+  const ex = h[0] - A[0], ey = h[1] - A[1];
+  let ssx = ssx0, ssy = ssy0;
+  const corner = ex !== 0 && ey !== 0;
+  if (corner && lock) {
+    const hv = [ex * ssx0, ey * ssy0];
+    const f = Math.max(0.01, (d[0] * hv[0] + d[1] * hv[1]) / (hv[0] * hv[0] + hv[1] * hv[1]));
+    ssx = ssx0 * f; ssy = ssy0 * f;
+  } else if (corner) {
+    ssx = fix(d[0] / ex); ssy = fix(d[1] / ey);
+  } else if (ex !== 0) {
+    ssx = fix(d[0] / ex);
+    if (lock) { const f = Math.abs(ssx / ssx0); ssy = ssy0 * f; }
+  } else {
+    ssy = fix(d[1] / ey);
+    if (lock) { const f = Math.abs(ssy / ssy0); ssx = ssx0 * f; }
+  }
+  l.sx = Math.abs(ssx); l.flipH = ssx < 0;
+  l.sy = Math.abs(ssy); l.flipV = ssy < 0;
+  // アンカーが動かないように中心を補正
+  const ax = A[0] * ssx, ay = A[1] * ssy;
+  l.cx = PA[0] - (c * ax - s * ay);
+  l.cy = PA[1] - (s * ax + c * ay);
+}
+
+function endPointer() {
+  if (op) {
+    if (op.type !== 'pan') { refreshProps(); scheduleSave(); }
+    op = null;
+  }
+  mouse.down = false;
+  dirty = true;
+  updateCursor();
+}
+overlay.addEventListener('pointerup', endPointer);
+overlay.addEventListener('pointercancel', endPointer);
+overlay.addEventListener('auxclick', e => e.preventDefault());
+
+overlay.addEventListener('wheel', e => {
+  e.preventDefault();
+  const [mx, my] = localPoint(e);
+  const delta = e.deltaMode === 1 ? e.deltaY * 30 : e.deltaY;
+  zoomAt(Math.exp(-delta * 0.0018), mx, my);
 }, { passive: false });
+
+function drawOverlay() {
+  const dpr = window.devicePixelRatio || 1;
+  octx.setTransform(1, 0, 0, 1, 0, 0);
+  octx.clearRect(0, 0, overlay.width, overlay.height);
+  const l = sel();
+  if (!l || l.type !== 'image' || !l.tex) return;
+  octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const pts = [[0, 0], [1, 0], [1, 1], [0, 1]].map(([u, v]) => toScreen(...localToOut(l, u * l.iw, v * l.ih)));
+  octx.beginPath();
+  pts.forEach(([x, y], i) => (i ? octx.lineTo(x, y) : octx.moveTo(x, y)));
+  octx.closePath();
+  octx.lineWidth = 3; octx.strokeStyle = 'rgba(0,0,0,.55)'; octx.stroke();
+  octx.lineWidth = 1; octx.strokeStyle = l.visible ? '#f2b45c' : '#888'; octx.setLineDash(l.visible ? [] : [4, 3]); octx.stroke();
+  octx.setLineDash([]);
+  if (!l.visible) return;
+  for (const [, hx, hy] of HANDLES) {
+    const [x, y] = toScreen(...localToOut(l, hx * l.iw, hy * l.ih));
+    octx.fillStyle = '#fff'; octx.strokeStyle = '#000'; octx.lineWidth = 1;
+    octx.fillRect(x - 4, y - 4, 8, 8); octx.strokeRect(x - 4.5, y - 4.5, 9, 9);
+  }
+  const [cx, cy] = toScreen(l.cx, l.cy);
+  octx.strokeStyle = '#fff'; octx.lineWidth = 1;
+  octx.beginPath(); octx.moveTo(cx - 6, cy); octx.lineTo(cx + 6, cy); octx.moveTo(cx, cy - 6); octx.lineTo(cx, cy + 6); octx.stroke();
+  if (op && op.l === l && op.type !== 'move') {
+    const txt = op.type === 'rotate' ? `${l.rot.toFixed(1)}°` : `${(l.sx * 100).toFixed(1)}% × ${(l.sy * 100).toFixed(1)}%`;
+    octx.font = '12px ui-monospace, monospace';
+    const w = octx.measureText(txt).width + 10;
+    octx.fillStyle = 'rgba(0,0,0,.7)'; octx.fillRect(cx + 10, cy + 10, w, 20);
+    octx.fillStyle = '#fff'; octx.fillText(txt, cx + 15, cy + 24);
+  }
+}
+
+/* ---------- keyboard ---------- */
+function isTyping(e) {
+  const t = e.target;
+  return t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['checkbox', 'button'].includes(t.type)) || t.isContentEditable);
+}
+window.addEventListener('keydown', e => {
+  if (isTyping(e)) return;
+  const mod = e.ctrlKey || e.metaKey;
+  if (e.code === 'Space') { e.preventDefault(); if (!spaceDown) { spaceDown = true; updateCursor(); } return; }
+  if (mod && e.code === 'KeyZ') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if (mod && e.code === 'KeyY') { e.preventDefault(); redo(); return; }
+  if (mod && e.altKey && e.code === 'KeyG') { e.preventDefault(); toggleClip(); return; }
+  if (mod && (e.code === 'Digit0' || e.code === 'Numpad0')) { e.preventDefault(); e.altKey ? actualPixels() : fitView(); return; }
+  if (mod && (e.key === '+' || e.key === '=' || e.key === ';' || e.code === 'NumpadAdd')) { e.preventDefault(); zoomAt(1.25); return; }
+  if (mod && (e.key === '-' || e.code === 'NumpadSubtract')) { e.preventDefault(); zoomAt(0.8); return; }
+  const l = sel();
+  if (!l) return;
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); removeLayer(l); return; }
+  if (l.type === 'image' && e.key.startsWith('Arrow')) {
+    e.preventDefault();
+    const st = e.shiftKey ? 10 : 1;
+    checkpoint('nudge' + l.id);
+    if (e.key === 'ArrowLeft') l.cx -= st;
+    if (e.key === 'ArrowRight') l.cx += st;
+    if (e.key === 'ArrowUp') l.cy -= st;
+    if (e.key === 'ArrowDown') l.cy += st;
+    refreshImageProps(l);
+    dirty = true;
+    scheduleSave();
+  }
+});
+window.addEventListener('keyup', e => { if (e.code === 'Space') { spaceDown = false; updateCursor(); } });
+window.addEventListener('blur', () => { spaceDown = false; });
 
 /* ================================================================
    Render
    ================================================================ */
+function renderContent(l, fb, chSrc, ctx) {
+  const W = canvas.width, H = canvas.height;
+  if (l.type === 'image') {
+    gl.useProgram(P.image.prog);
+    bindTex(0, l.tex);
+    gl.uniform1i(P.image.u.uTex, 0);
+    gl.uniformMatrix3fv(P.image.u.uInv, false, imageInvMatrix(l, ctx.ps));
+    gl.uniform2f(P.image.u.uImg, l.iw, l.ih);
+    gl.uniform1f(P.image.u.uCanvasH, H);
+    drawTo(fb);
+    return;
+  }
+  const U = l.U;
+  if (U.iChannel0) {
+    gl.useProgram(P.unpremul.prog);
+    bindTex(0, chSrc);
+    gl.uniform1i(P.unpremul.u.uSrc, 0);
+    drawTo(RT.ch.fb);
+  }
+  gl.useProgram(l.prog);
+  bindTex(0, RT.ch.tex);
+  gl.uniform1i(U.iChannel0, 0);
+  gl.uniform3f(U.iResolution, W, H, 1);
+  gl.uniform1f(U.iTime, ctx.time);
+  gl.uniform1f(U.iTimeDelta, ctx.dt);
+  gl.uniform1i(U.iFrame, ctx.frame);
+  gl.uniform1f(U.iFrameRate, ctx.s.fps);
+  gl.uniform1f(U.iDuration, ctx.s.dur);
+  const mz = mouse.cx * W, mw = mouse.cy * H;
+  gl.uniform4f(U.iMouse, mouse.x * W, mouse.y * H, mouse.down ? mz : -mz, mouse.down ? mw : -mw);
+  const d = new Date();
+  gl.uniform4f(U.iDate, d.getFullYear(), d.getMonth(), d.getDate(), d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds());
+  const res = new Float32Array(12);
+  res[0] = W; res[1] = H; res[2] = 1;
+  gl.uniform3fv(U.iChannelResolution, res);
+  gl.uniform1i(U._alphaMode, l.alphaMode);
+  drawTo(fb);
+}
+
+/** レイヤーの中身＋加工を描き、結果のテクスチャを返す */
+function layerTexture(l, chSrc, ctx) {
+  renderContent(l, RT.layer.fb, chSrc, ctx);
+  const f = l.fx;
+  if (!fxActive(f)) return RT.layer.tex;
+  const W = canvas.width, H = canvas.height;
+  let src = RT.layer.tex, pi = 0;
+  const next = () => { const t = RT.fx[pi]; pi ^= 1; return t; };
+  if (fxColorActive(f)) {
+    const t = next();
+    const u = P.fxc.u;
+    gl.useProgram(P.fxc.prog);
+    bindTex(0, src);
+    gl.uniform1i(u.uSrc, 0);
+    gl.uniform1i(u.uKey, f.key === 'white' ? 1 : f.key === 'black' ? 2 : 0);
+    gl.uniform1i(u.uColorOn, f.colorOn ? 1 : 0);
+    gl.uniform3f(u.uColor, ...hex2rgb(f.color));
+    gl.uniform1f(u.uBright, f.bright / 200);
+    gl.uniform1f(u.uContrast, f.contrast >= 0 ? 1 / (1 - f.contrast / 100 * 0.95) : 1 + f.contrast / 100);
+    gl.uniform1f(u.uHue, f.hue);
+    gl.uniform1f(u.uSat, f.sat / 100);
+    gl.uniform1f(u.uLight, f.light / 100);
+    gl.uniform1i(u.uInvert, f.invert ? 1 : 0);
+    gl.uniform1f(u.uPoster, f.posterize >= 2 ? f.posterize : 0);
+    drawTo(t.fb);
+    src = t.tex;
+  }
+  if (f.outline > 0) {
+    const t = next();
+    gl.useProgram(P.outline.prog);
+    bindTex(0, src);
+    gl.uniform1i(P.outline.u.uSrc, 0);
+    gl.uniform2f(P.outline.u.uSize, W, H);
+    gl.uniform1f(P.outline.u.uR, f.outline * ctx.ps);
+    gl.uniform3f(P.outline.u.uCol, ...hex2rgb(f.outlineColor));
+    drawTo(t.fb);
+    src = t.tex;
+  }
+  if (f.blur > 0) {
+    const sigma = Math.max(0.3, f.blur * ctx.ps / 2);
+    for (const dir of [[1, 0], [0, 1]]) {
+      const t = next();
+      gl.useProgram(P.blur.prog);
+      bindTex(0, src);
+      gl.uniform1i(P.blur.u.uSrc, 0);
+      gl.uniform2f(P.blur.u.uSize, W, H);
+      gl.uniform2f(P.blur.u.uDir, dir[0], dir[1]);
+      gl.uniform1f(P.blur.u.uSigma, sigma);
+      drawTo(t.fb);
+      src = t.tex;
+    }
+  }
+  return src;
+}
+
+function composite(baseTex, layerTex, opacity, blend, outFb, clip) {
+  gl.useProgram(P.comp.prog);
+  bindTex(0, baseTex);
+  bindTex(1, layerTex);
+  gl.uniform1i(P.comp.u.uBase, 0);
+  gl.uniform1i(P.comp.u.uLayer, 1);
+  gl.uniform1f(P.comp.u.uOpacity, opacity);
+  gl.uniform1i(P.comp.u.uMode, BLEND_ID[blend] ?? 0);
+  gl.uniform1i(P.comp.u.uClip, clip ? 1 : 0);
+  drawTo(outFb);
+  unbindAll();
+}
+
 function render(time, frame, dt) {
   const s = S();
   const W = canvas.width, H = canvas.height;
   ensureTargets(W, H);
+  const ctx = { time, frame, dt, s, ps: W / s.w };
   let cur = 0;
   clearTarget(RT.acc[0]);
 
-  for (const l of layers) {
-    if (!l.visible || l.opacity <= 0) continue;
+  let i = 0;
+  while (i < layers.length) {
+    const base = layers[i];
+    const clipped = [];
+    let j = i + 1;
+    while (j < layers.length && layers[j].clip) clipped.push(layers[j++]);
+    i = j;
+    if (!base.visible || base.opacity <= 0 || !layerReady(base)) continue;   // 下地が非表示ならクリッピングも非表示
+    const vis = clipped.filter(c => c.visible && c.opacity > 0 && layerReady(c));
 
-    if (l.type === 'image') {
-      if (!l.tex) continue;
-      gl.useProgram(P.image.prog);
-      bindTex(0, l.tex);
-      gl.uniform1i(P.image.u.uTex, 0);
-      gl.uniform2f(P.image.u.uSize, W, H);
-      gl.uniform2f(P.image.u.uImgSize, l.iw, l.ih);
-      gl.uniform2f(P.image.u.uPos, l.x, l.y);
-      gl.uniform1f(P.image.u.uScale, l.scale);
-      drawTo(RT.layer.fb);
-    } else {
-      if (!l.prog) continue;
-      const U = l.U;
-      if (U.iChannel0) {
-        gl.useProgram(P.unpremul.prog);
-        bindTex(0, RT.acc[cur].tex);
-        gl.uniform1i(P.unpremul.u.uSrc, 0);
-        drawTo(RT.ch.fb);
-      }
-      gl.useProgram(l.prog);
-      bindTex(0, RT.ch.tex);
-      gl.uniform1i(U.iChannel0, 0);
-      gl.uniform3f(U.iResolution, W, H, 1);
-      gl.uniform1f(U.iTime, time);
-      gl.uniform1f(U.iTimeDelta, dt);
-      gl.uniform1i(U.iFrame, frame);
-      gl.uniform1f(U.iFrameRate, s.fps);
-      gl.uniform1f(U.iDuration, s.dur);
-      const mz = mouse.cx * W, mw = mouse.cy * H;
-      gl.uniform4f(U.iMouse, mouse.x * W, mouse.y * H, mouse.down ? mz : -mz, mouse.down ? mw : -mw);
-      const d = new Date();
-      gl.uniform4f(U.iDate, d.getFullYear(), d.getMonth(), d.getDate(),
-        d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds());
-      const res = new Float32Array(12);
-      res[0] = W; res[1] = H; res[2] = 1;
-      gl.uniform3fv(U.iChannelResolution, res);
-      gl.uniform1i(U._alphaMode, l.alphaMode);
-      drawTo(RT.layer.fb);
+    if (!vis.length) {
+      const tex = layerTexture(base, RT.acc[cur].tex, ctx);
+      composite(RT.acc[cur].tex, tex, base.opacity, base.blend, RT.acc[1 - cur].fb, false);
+      cur ^= 1;
+      continue;
     }
-
-    // 合成: acc[cur] + layer → acc[1-cur]
-    gl.useProgram(P.comp.prog);
-    bindTex(0, RT.acc[cur].tex);
-    bindTex(1, RT.layer.tex);
-    gl.uniform1i(P.comp.u.uBase, 0);
-    gl.uniform1i(P.comp.u.uLayer, 1);
-    gl.uniform1f(P.comp.u.uOpacity, l.opacity);
-    gl.uniform1i(P.comp.u.uMode, BLEND_ID[l.blend] ?? 0);
-    drawTo(RT.acc[1 - cur].fb);
-    bindTex(1, null);
-    cur = 1 - cur;
+    // クリッピンググループ: 下地 → grp、クリッピングレイヤーを下地の内側に重ねる
+    let g = 0;
+    const baseTex = layerTexture(base, RT.acc[cur].tex, ctx);
+    gl.useProgram(P.copy.prog);
+    bindTex(0, baseTex);
+    gl.uniform1i(P.copy.u.uSrc, 0);
+    drawTo(RT.grp[0].fb);
+    unbindAll();
+    for (const c of vis) {
+      const tex = layerTexture(c, RT.grp[g].tex, ctx);
+      composite(RT.grp[g].tex, tex, c.opacity, c.blend, RT.grp[1 - g].fb, true);
+      g ^= 1;
+    }
+    composite(RT.acc[cur].tex, RT.grp[g].tex, base.opacity, base.blend, RT.acc[1 - cur].fb, false);
+    cur ^= 1;
   }
 
   gl.useProgram(P.final.prog);
@@ -1262,7 +1996,7 @@ function render(time, frame, dt) {
   gl.uniform1i(P.final.u.uSrc, 0);
   gl.uniform1i(P.final.u.uBlack, s.blackBg ? 1 : 0);
   drawTo(null);
-  bindTex(0, null);
+  unbindAll();
 }
 
 /* ---------- playback ---------- */
@@ -1284,6 +2018,7 @@ function tick(now) {
       $('#scrub').value = Math.min(elapsed, s.dur);
       $('#timeText').textContent = `${(s.start + elapsed).toFixed(3)}s / f${Math.floor(elapsed * s.fps + 1e-6)}`;
     }
+    drawOverlay();
   }
   requestAnimationFrame(tick);
 }
@@ -1312,7 +2047,6 @@ function crc32(bytes) {
   for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
   return (c ^ 0xFFFFFFFF) >>> 0;
 }
-
 /** 無圧縮(store)ZIP。PNGはすでに圧縮済みなので再圧縮は不要 */
 class ZipSink {
   constructor() {
@@ -1363,7 +2097,6 @@ class DirSink {
   }
   async finish() {}
 }
-
 function download(blob, name) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1401,7 +2134,6 @@ async function exportStill() {
     setBusy(false);
   }
 }
-
 async function exportSequence(kind) {
   const s = S();
   const n = frameCountOf(s);
@@ -1446,7 +2178,7 @@ $('#btnDir').addEventListener('click', () => exportSequence('dir'));
 $('#btnCancel').addEventListener('click', () => { cancelReq = true; });
 
 /* ================================================================
-   Persistence (設定とGLSL → localStorage / 画像 → IndexedDB)
+   Persistence（設定とGLSL → localStorage / 画像 → IndexedDB）
    ================================================================ */
 const idb = (() => {
   let dbp = null;
@@ -1469,12 +2201,14 @@ const idb = (() => {
     put: (k, v) => run('readwrite', s => s.put(v, k)),
     get: k => run('readonly', s => s.get(k)),
     del: k => run('readwrite', s => s.delete(k)),
+    keys: () => run('readonly', s => s.getAllKeys()),
   };
 })();
 
-const STORE_KEY = 'glsl-effect-exporter.v2';
-const OLD_KEY = 'withgaraku.glsl-exporter.v1';
-const SETTING_IDS = ['w','h','fps','dur','start','prefix','pscale','bgMode','bgColor','blackBg','loop','autoCompile'];
+const STORE_KEY = 'glsl-effect-exporter.v3';
+const V2_KEY = 'glsl-effect-exporter.v2';
+const V1_KEY = 'withgaraku.glsl-exporter.v1';
+const SETTING_IDS = ['w','h','fps','dur','start','prefix','pscale','bgMode','bgColor','blackBg','loop','autoCompile','pLock'];
 let saveTimer = 0, booting = true;
 function scheduleSave() {
   if (booting) return;
@@ -1487,9 +2221,11 @@ function scheduleSave() {
         settings[id] = el.type === 'checkbox' ? el.checked : el.value;
       }
       const ls = layers.map(l => {
-        const base = { id: l.id, type: l.type, name: l.name, visible: l.visible, opacity: l.opacity, blend: l.blend };
-        return l.type === 'shader' ? { ...base, code: l.code, alphaMode: l.alphaMode }
-                                   : { ...base, x: l.x, y: l.y, scale: l.scale };
+        const base = { id: l.id, type: l.type, name: l.name, visible: l.visible, opacity: l.opacity,
+          blend: l.blend, clip: l.clip, fx: l.fx };
+        return l.type === 'shader'
+          ? { ...base, code: l.code, alphaMode: l.alphaMode }
+          : { ...base, cx: l.cx, cy: l.cy, sx: l.sx, sy: l.sy, rot: l.rot, flipH: l.flipH, flipV: l.flipV, interp: l.interp };
       });
       localStorage.setItem(STORE_KEY, JSON.stringify({ settings, layers: ls, selId }));
     } catch (_) { /* storage unavailable */ }
@@ -1498,46 +2234,59 @@ function scheduleSave() {
 function applySettings(settings) {
   for (const [k, v] of Object.entries(settings || {})) {
     const el = $('#' + k);
-    if (!el) continue;
+    if (!el || !SETTING_IDS.includes(k)) continue;
     if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
   }
+  if ($('#bgMode').selectedIndex < 0) $('#bgMode').value = 'checker-dark';
 }
-async function restore() {
-  let data = null;
-  try { data = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (_) {}
-  if (!data) {
-    // 旧バージョン（単一シェーダー）からの引き継ぎ
-    try {
-      const old = JSON.parse(localStorage.getItem(OLD_KEY) || 'null');
-      if (old && typeof old.code === 'string') {
-        const { alphaMode, ...rest } = old.settings || {};
-        applySettings(rest);
-        if ($('#bgMode').selectedIndex < 0) $('#bgMode').value = 'checker-dark';
-        const l = makeShaderLayer({ code: old.code, alphaMode: +alphaMode || 0 });
-        compileLayer(l);
-        layers.push(l);
-        return l.id;
-      }
-    } catch (_) {}
-    return null;
-  }
-  applySettings(data.settings);
-  for (const s of data.layers || []) {
-    if (s.type === 'shader') {
-      const l = makeShaderLayer(s);
+async function restoreLayers(list, legacy) {
+  const s = S();
+  for (const d of list || []) {
+    if (legacy && d.blend === 'add') d.blend = 'addglow';   // 旧「加算（発光）」
+    if (d.type === 'shader') {
+      const l = makeShaderLayer(d);
       compileLayer(l);
       layers.push(l);
-    } else if (s.type === 'image') {
+    } else if (d.type === 'image') {
       try {
-        const blob = await idb.get(s.id);
+        const blob = await idb.get(d.id);
         if (!blob) continue;
-        const l = makeImageLayer({ ...s, blob });
+        const l = makeImageLayer({ ...d, blob });
         await loadImageLayer(l);
+        if (legacy || d.cx === undefined) {           // 旧形式（割合・キャンバスに収まる大きさ基準）
+          const k = Math.min(s.w / l.iw, s.h / l.ih) * (d.scale ?? 1);
+          Object.assign(l, { cx: (d.x ?? 0.5) * s.w, cy: (d.y ?? 0.5) * s.h, sx: k, sy: k });
+        }
         layers.push(l);
       } catch (_) { /* 画像が読めなければ飛ばす */ }
     }
   }
-  return byId(data.selId) ? data.selId : (layers.at(-1)?.id ?? null);
+}
+async function restore() {
+  const read = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (_) { return null; } };
+  let data = read(STORE_KEY), legacy = false;
+  if (!data) { data = read(V2_KEY); legacy = !!data; }
+  if (data) {
+    applySettings(data.settings);
+    await restoreLayers(data.layers, legacy);
+    return byId(data.selId) ? data.selId : (layers.at(-1)?.id ?? null);
+  }
+  const old = read(V1_KEY);
+  if (old && typeof old.code === 'string') {
+    const { alphaMode, ...rest } = old.settings || {};
+    applySettings(rest);
+    const l = makeShaderLayer({ code: old.code, alphaMode: +alphaMode || 0 });
+    compileLayer(l);
+    layers.push(l);
+    return l.id;
+  }
+  return null;
+}
+async function cleanupImages() {
+  try {
+    const live = new Set(layers.map(l => l.id));
+    for (const k of await idb.keys()) if (!live.has(k)) await idb.del(k);
+  } catch (_) {}
 }
 
 /* ================================================================
@@ -1561,12 +2310,14 @@ async function restore() {
   applyBg();
   onSettingsChange();
   selectLayer(first);
+  updateUndoButtons();
   if (!window.showDirectoryPicker) {
     $('#btnDir').disabled = true;
     $('#btnDir').title = 'このブラウザは未対応です（Chrome / Edge で使えます）';
   }
   booting = false;
   scheduleSave();
+  cleanupImages();
   requestAnimationFrame(tick);
 })();
 </script>
