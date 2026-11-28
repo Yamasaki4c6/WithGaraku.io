@@ -10,17 +10,22 @@
   --text:#e8e8eb; --muted:#9296a0; --accent:#f2b45c; --accent2:#7cc7ff;
   --err:#ff6b6b; --ok:#7bd88f; --sel:#2a303b; --clip:#e0567a;
   --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Noto Sans Mono", monospace;
+  --edw: 36%;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
   font:13px/1.5 system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
 button,select,input{font:inherit;color:inherit}
-.app{display:grid;grid-template-columns:minmax(340px,36%) 1fr;height:100vh}
-@media (max-width:1100px){.app{grid-template-columns:1fr;height:auto}.editor-col{height:60vh}.right-col{height:100vh}}
+.app{display:grid;grid-template-columns:var(--edw) 6px minmax(0,1fr);height:100vh}
+.app.collapsed .editor-col{visibility:hidden}
+.splitter{cursor:col-resize;background:var(--line);position:relative;touch-action:none}
+.splitter:hover,.splitter.drag{background:var(--accent)}
+.splitter::after{content:'';position:absolute;inset:0 -4px}
+@media (max-width:1100px){.app{grid-template-columns:1fr!important;height:auto}.splitter{display:none}.editor-col{height:60vh}.right-col{height:100vh}}
 
 /* ---------- editor ---------- */
-.editor-col{display:flex;flex-direction:column;border-right:1px solid var(--line);min-height:0;background:var(--panel)}
+.editor-col{display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden;background:var(--panel)}
 .bar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .editing{color:var(--muted);font-size:12px;margin-left:auto;max-width:12em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .code-wrap{flex:1;display:flex;min-height:0;font:12.5px/1.6 var(--mono)}
@@ -46,34 +51,51 @@ textarea#code:disabled{color:var(--muted)}
 .bg-checker-dark{background:conic-gradient(#2b2d33 25%,#3a3d44 0 50%,#2b2d33 0 75%,#3a3d44 0) 0 0/20px 20px}
 .bg-checker-light{background:conic-gradient(#cfcfd4 25%,#fff 0 50%,#cfcfd4 0 75%,#fff 0) 0 0/20px 20px}
 
+/* ---------- tools ---------- */
+.toolbar{position:absolute;left:8px;top:8px;display:flex;flex-direction:column;gap:3px;background:#1b1d22ee;
+  border:1px solid var(--line);border-radius:8px;padding:4px}
+.toolbar button{width:30px;height:30px;padding:0;display:grid;place-items:center;border-color:transparent;background:none;color:var(--muted)}
+.toolbar button:hover{color:var(--text);border-color:var(--line)}
+.toolbar button.on{background:var(--accent);color:#1b1407}
+.toolbar svg{width:17px;height:17px}
+.toolopts{position:absolute;left:52px;top:8px;right:8px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;pointer-events:none}
+.toolopts > *{pointer-events:auto}
+.toolopts .opt{display:flex;align-items:center;gap:6px;background:#1b1d22ee;border:1px solid var(--line);border-radius:8px;padding:3px 8px;font-size:12px;color:var(--muted)}
+.toolopts input[type=range]{width:90px;min-width:0;flex:none}
+.toolopts input[type=number]{width:4em}
+
 /* ---------- layers ---------- */
 .layers{width:330px;flex:none;display:flex;flex-direction:column;border-left:1px solid var(--line);background:var(--panel);min-height:0}
-.layers-head{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line)}
-.layers-head b{margin-right:auto;font-weight:600}
-.layers-head button{padding:2px 8px}
+.layers-head{display:flex;align-items:center;gap:5px;padding:8px 10px;border-bottom:1px solid var(--line)}
+.layers-head b{margin-right:auto;font-weight:600;white-space:nowrap}
+.layers-head button{padding:2px 6px;font-size:12px;white-space:nowrap}
 #layerList{list-style:none;margin:0;padding:0;overflow:auto;flex:1 1 140px;min-height:100px}
-#layerList li{position:relative;display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid var(--line);cursor:pointer;
-  border-left:3px solid transparent;user-select:none}
+#layerList li{--ind:0px;position:relative;display:flex;align-items:center;gap:7px;padding:5px 8px 5px calc(8px + var(--ind));
+  border-bottom:1px solid var(--line);cursor:pointer;border-left:3px solid transparent;user-select:none}
 #layerList li:hover{background:#20232a}
 #layerList li.sel{background:var(--sel);border-left-color:var(--accent)}
-#layerList li.off .lname,#layerList li.off .thumb{opacity:.4}
+#layerList li.off .lname,#layerList li.off .thumb,#layerList li.hiddenByParent .lname{opacity:.4}
 #layerList li.clip .thumb{margin-left:12px}
-#layerList li.clip::before{content:'';position:absolute;left:40px;top:6px;bottom:6px;width:3px;border-radius:2px;background:var(--clip)}
+#layerList li.clip::before{content:'';position:absolute;left:calc(40px + var(--ind));top:6px;bottom:6px;width:3px;border-radius:2px;background:var(--clip)}
 #layerList li.drop-above{box-shadow:inset 0 2px 0 var(--accent)}
 #layerList li.drop-below{box-shadow:inset 0 -2px 0 var(--accent)}
+#layerList li.drop-into{background:#f2b45c26;outline:1px solid var(--accent);outline-offset:-1px}
 #layerList li.empty{color:var(--muted);cursor:default;font-size:12px;line-height:1.7;border:0;padding:14px 12px}
-.eye{background:none;border:0;padding:2px;width:22px;height:22px;display:grid;place-items:center;color:var(--muted);flex:none}
-.eye:hover{color:var(--text)}
+.eye,.caret{background:none;border:0;padding:2px;width:22px;height:22px;display:grid;place-items:center;color:var(--muted);flex:none}
+.caret{width:14px;margin-right:-4px}
+.eye:hover,.caret:hover{color:var(--text)}
 .eye svg{width:16px;height:16px}
 .thumb{width:38px;height:26px;flex:none;border-radius:4px;display:grid;place-items:center;overflow:hidden;
   background:conic-gradient(#2b2d33 25%,#3a3d44 0 50%,#2b2d33 0 75%,#3a3d44 0) 0 0/8px 8px}
-.thumb img{width:100%;height:100%;object-fit:contain}
+.thumb img,.thumb canvas{width:100%;height:100%;object-fit:contain}
 .thumb.glsl{background:#2a2333;color:#d6b4ff;font:600 9.5px var(--mono);letter-spacing:.04em}
+.thumb.folder{background:none;color:#e9c46a}
+.thumb.folder svg{width:22px;height:22px}
 .lname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lmeta{color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .errdot{width:8px;height:8px;border-radius:50%;background:var(--err);flex:none}
-.layer-tools{display:flex;gap:6px;padding:6px 10px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.layer-tools button{font-size:12px;padding:3px 8px}
+.layer-tools{display:flex;gap:5px;padding:6px 10px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.layer-tools button{font-size:12px;padding:3px 7px}
 .layer-tools button.on{background:var(--clip);border-color:var(--clip);color:#fff}
 .layer-tools .sp{flex:1}
 .props{overflow:auto;flex:0 1 auto;max-height:58%;padding:6px 10px 10px;display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
@@ -111,10 +133,23 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .progress > i{display:block;height:100%;width:0;background:var(--accent);transition:width .1s}
 .file-label{position:relative;overflow:hidden}
 .file-label input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+/* ---------- recent projects ---------- */
+.recent-pop{position:fixed;z-index:20;width:360px;max-height:60vh;overflow:auto;background:var(--panel);border:1px solid var(--line);
+  border-radius:10px;box-shadow:0 12px 40px #000a;padding:6px}
+.recent-pop .empty{color:var(--muted);padding:14px;font-size:12px}
+.recent-item{display:flex;align-items:center;gap:10px;padding:6px;border-radius:7px;cursor:pointer}
+.recent-item:hover{background:var(--sel)}
+.recent-item img{width:72px;height:42px;object-fit:cover;border-radius:4px;background:#0c0d10;flex:none}
+.recent-item .ri{flex:1;min-width:0}
+.recent-item .rn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recent-item .rd{color:var(--muted);font-size:11px}
+.recent-item .rx{background:none;border:0;color:var(--muted);padding:2px 6px}
+.recent-item .rx:hover{color:var(--err)}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" id="app">
 
   <!-- ================= Editor ================= -->
   <section class="editor-col">
@@ -135,12 +170,29 @@ button:disabled{opacity:.45;cursor:not-allowed}
     <div class="log" id="log"></div>
   </section>
 
+  <div class="splitter" id="splitter" title="ドラッグで幅を変更／ダブルクリックでエディタを開閉"></div>
+
   <!-- ================= Preview / Layers / Export ================= -->
   <section class="right-col">
     <div class="stage-row">
       <div class="preview" id="preview">
         <div class="stage bg-checker-dark" id="stage"><canvas id="cv"></canvas></div>
         <canvas id="overlay"></canvas>
+        <div class="toolbar" id="toolbar">
+          <button data-tool="move" title="移動・変形（V）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 8-6 2-2 6z"/></svg></button>
+          <button data-tool="pen" title="ペン（P）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3l5 5L8 21H3v-5z"/><path d="M13 6l5 5"/></svg></button>
+          <button data-tool="eraser" title="消しゴム（E）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H8l-5-5 10-10 8 8-6 6"/><path d="M8 10l6 6"/></svg></button>
+          <button data-tool="lasso" title="投げ縄（L）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="9" rx="9" ry="6" stroke-dasharray="3 2"/><path d="M7 14c-2 2-1 5 2 6"/></svg></button>
+          <button data-tool="hand" title="手のひら（H／Space）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V5a1.5 1.5 0 0 1 3 0v6V4a1.5 1.5 0 0 1 3 0v7V6a1.5 1.5 0 0 1 3 0v8c0 4-3 7-7 7-3 0-5-2-6.5-4L4 13a1.5 1.5 0 0 1 2.5-1.5L8 13"/></svg></button>
+        </div>
+        <div class="toolopts" id="toolopts">
+          <div class="opt" data-for="pen lasso"><span>色</span><input type="color" id="brushColor" value="#202020"></div>
+          <div class="opt" data-for="pen eraser"><span>サイズ</span><input type="range" id="brushSize" min="1" max="200" step="1" value="8"><input type="number" id="brushSizeN" min="1" max="500" value="8"></div>
+          <div class="opt" data-for="pen eraser lasso"><span>不透明度</span><input type="range" id="brushOpacity" min="1" max="100" step="1" value="100"><input type="number" id="brushOpacityN" min="1" max="100" value="100"></div>
+          <div class="opt" data-for="pen eraser"><label><input type="checkbox" id="brushPressure" checked>筆圧</label></div>
+          <div class="opt" data-for="lasso"><span>投げ縄</span>
+            <select id="lassoMode"><option value="fill">囲んで塗りつぶし</option><option value="erase">囲んで消去</option></select></div>
+        </div>
         <div class="zoom-chip" id="zoomChip" title="クリックで全体表示（Ctrl/⌘+0）">100%</div>
       </div>
 
@@ -149,6 +201,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
           <b>レイヤー</b>
           <button id="addShader" title="GLSLレイヤーを追加">＋GLSL</button>
           <button class="file-label" title="画像レイヤーを追加（ドロップ・貼り付けでも可）">＋画像<input type="file" id="addImage" accept="image/*" multiple></button>
+          <button id="addPaint" title="描画レイヤーを追加（ペン・投げ縄用）">＋描画</button>
+          <button id="addFolder" title="フォルダを追加（Ctrl/⌘+G で選択中のレイヤーをフォルダに入れる）">＋フォルダ</button>
         </div>
         <ul id="layerList"></ul>
         <div class="layer-tools">
@@ -163,14 +217,14 @@ button:disabled{opacity:.45;cursor:not-allowed}
           <div class="prow"><span>不透明度</span>
             <input type="range" id="pOpacity" min="0" max="100" step="1">
             <input type="number" id="pOpacityN" min="0" max="100" step="1"></div>
-          <div class="prow"><span>合成モード</span><select id="pBlend"></select></div>
+          <div class="prow"><span>合成モード</span><select id="pBlend"><option value="through">通過</option></select></div>
           <div class="prow" data-for="shader"><span>アルファ</span>
             <select id="pAlpha">
               <option value="0">straight — vec4(col, a)</option>
               <option value="1">premultiplied — vec4(col*a, a)</option>
             </select></div>
 
-          <details open data-for="image">
+          <details open data-for="raster">
             <summary>変形</summary>
             <div class="prow"><span>中心 px</span>
               X<input type="number" id="pCX" step="1"> Y<input type="number" id="pCY" step="1"></div>
@@ -221,6 +275,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
         <span class="label">プロジェクト</span>
         <button id="projNew">新規</button>
         <button id="projOpenBtn" title="Ctrl/⌘+O">開く</button>
+        <button id="projRecentBtn" title="最近使ったプロジェクト">最近 ▾</button>
         <input type="file" id="projOpen" accept=".glslfx" hidden>
         <button id="projSave" title="Ctrl/⌘+S">保存</button>
         <button id="projSaveAs" title="Ctrl/⌘+Shift+S">別名で保存</button>
@@ -231,6 +286,21 @@ button:disabled{opacity:.45;cursor:not-allowed}
         <input type="range" id="scrub" min="0" max="2" step="0.001" value="0">
         <span class="time" id="timeText">0.000s / f0</span>
         <label class="hint"><input type="checkbox" id="loop" checked> ループ</label>
+      </div>
+      <div class="row">
+        <span class="label">出力</span>
+        <div class="group"><span>比率</span>
+          <select id="ratio"></select>
+          <span>長辺</span>
+          <select id="longSide"></select>
+          <button id="swapWH" title="縦と横を入れ替え" style="padding:1px 7px">⇄</button>
+        </div>
+        <div class="group"><span>W</span><input type="number" id="w" value="1920" min="1" max="8192">
+          <span>H</span><input type="number" id="h" value="1080" min="1" max="8192"></div>
+        <div class="group"><span>fps</span><input type="number" id="fps" value="30" min="1" max="240"></div>
+        <div class="group"><span>長さ(秒)</span><input type="number" id="dur" value="2" min="0.01" step="0.1"></div>
+        <div class="group"><span>開始</span><input type="number" id="start" value="0" step="0.1"></div>
+        <span class="hint" id="frameInfo"></span>
       </div>
       <div class="row">
         <span class="label">プレビュー</span>
@@ -251,19 +321,10 @@ button:disabled{opacity:.45;cursor:not-allowed}
             <option value="0.25">25%</option>
           </select>
         </div>
-      </div>
-      <div class="row">
-        <span class="label">出力</span>
-        <div class="group"><span>W</span><input type="number" id="w" value="1920" min="1" max="8192">
-          <span>H</span><input type="number" id="h" value="1080" min="1" max="8192"></div>
-        <div class="group"><span>fps</span><input type="number" id="fps" value="30" min="1" max="240"></div>
-        <div class="group"><span>長さ(秒)</span><input type="number" id="dur" value="2" min="0.01" step="0.1"></div>
-        <div class="group"><span>開始</span><input type="number" id="start" value="0" step="0.1"></div>
         <label class="group" title="アルファを捨て、黒背景に合成した不透明PNGを書き出します（加算・スクリーン用）">
-          <input type="checkbox" id="blackBg"> 黒背景
+          <input type="checkbox" id="blackBg"> 黒背景で書き出す
         </label>
         <div class="group"><span>ファイル名</span><input type="text" id="prefix" value="frame_" style="width:7em"></div>
-        <span class="hint" id="frameInfo"></span>
       </div>
       <div class="row">
         <button id="btnStill">現在のフレームをPNG</button>
@@ -276,6 +337,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
     </div>
   </section>
 </div>
+<div class="recent-pop" id="recentPop" hidden></div>
 
 <script>
 'use strict';
@@ -742,6 +804,10 @@ void main() {
 const USER_UNIFORMS = ['iResolution','iTime','iTimeDelta','iFrame','iFrameRate','iMouse','iDate',
   'iDuration','iChannel0','iChannelResolution','_alphaMode'];
 
+
+BLEND_LABEL.through = '通過';
+const isRaster = l => l && (l.type === 'image' || l.type === 'paint');
+
 let vsObj, vao, P = {};
 
 function buildProgram(fsSrc) {
@@ -790,8 +856,8 @@ function initGL() {
   gl.disable(gl.DEPTH_TEST);
 }
 
-/* ---------- render targets ---------- */
-let RT = null;
+/* ---------- render target pool ---------- */
+let pool = { w: 0, h: 0, free: [], all: [] }, chT = null;
 function makeTarget(w, h) {
   const tex = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -806,21 +872,33 @@ function makeTarget(w, h) {
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
   const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.bindTexture(gl.TEXTURE_2D, null);
   return { tex, fb, ok };
 }
-const allTargets = () => [...RT.acc, RT.layer, RT.ch, ...RT.grp, ...RT.fx];
-function ensureTargets(w, h) {
-  if (RT && RT.w === w && RT.h === h) return;
-  if (RT) allTargets().forEach(t => { gl.deleteTexture(t.tex); gl.deleteFramebuffer(t.fb); });
-  const mk = () => makeTarget(w, h);
-  RT = { w, h, acc: [mk(), mk()], layer: mk(), ch: mk(), grp: [mk(), mk()], fx: [mk(), mk()] };
-  if (hasFloat && !allTargets().every(t => t.ok)) {
-    hasFloat = false;          // float に描けない環境は 8bit で作り直す
-    RT.w = -1;
-    ensureTargets(w, h);
+function ensurePool(w, h) {
+  if (pool.w === w && pool.h === h && pool.all.length) return;
+  for (const t of pool.all) { gl.deleteTexture(t.tex); gl.deleteFramebuffer(t.fb); }
+  pool = { w, h, free: [], all: [] };
+  chT = null;
+  let t = makeTarget(w, h);
+  if (!t.ok && hasFloat) {      // float に描けない環境は 8bit に切り替え
+    gl.deleteTexture(t.tex); gl.deleteFramebuffer(t.fb);
+    hasFloat = false;
+    t = makeTarget(w, h);
   }
+  pool.all.push(t); pool.free.push(t);
 }
+function acquire() {
+  let t = pool.free.pop();
+  if (!t) { t = makeTarget(pool.w, pool.h); pool.all.push(t); }
+  return t;
+}
+const release = t => { if (t) pool.free.push(t); };
+function acquireCleared() { const t = acquire(); clearTarget(t); return t; }
+const chTarget = () => (chT ||= acquire());
+
 function bindTex(unit, tex) { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex); }
+function unbindAll() { bindTex(1, null); bindTex(0, null); }
 function drawTo(fb) {
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
   gl.viewport(0, 0, canvas.width, canvas.height);
@@ -833,85 +911,131 @@ function clearTarget(t) {
   gl.clearColor(0, 0, 0, 0);
   gl.clear(gl.COLOR_BUFFER_BIT);
 }
-function unbindAll() { bindTex(1, null); bindTex(0, null); }
 
 /* ================================================================
-   Layers
+   Layer tree（配列の index 0 が一番下。フォルダは children を持つ）
    ================================================================ */
-let layers = [];          // index 0 = 一番下
+let root = [];
 let selId = null;
 let idCounter = 0;
 const newId = () => 'L' + Date.now().toString(36) + (idCounter++).toString(36);
-const sel = () => layers.find(l => l.id === selId) || null;
-const byId = id => layers.find(l => l.id === id) || null;
 
-function common(opts) {
+function* walk(list = root, parent = null, depth = 0) {
+  for (const n of list) {
+    yield { n, list, parent, depth };
+    if (n.type === 'folder') yield* walk(n.children, n, depth + 1);
+  }
+}
+const allNodes = () => [...walk()].map(x => x.n);
+function byId(id) { for (const { n } of walk()) if (n.id === id) return n; return null; }
+function locate(node) { for (const x of walk()) if (x.n === node) return { ...x, index: x.list.indexOf(node) }; return null; }
+const sel = () => (selId ? byId(selId) : null);
+function contains(folder, node) {
+  if (folder.type !== 'folder') return false;
+  for (const { n } of walk(folder.children)) if (n === node) return true;
+  return false;
+}
+
+function common(opts, folder) {
+  const okBlend = BLEND_ID[opts.blend] !== undefined || (folder && opts.blend === 'through');
   return {
     id: opts.id || newId(), visible: opts.visible ?? true, opacity: opts.opacity ?? 1,
-    blend: BLEND_ID[opts.blend] !== undefined ? opts.blend : 'normal', clip: !!opts.clip,
+    blend: okBlend ? opts.blend : (folder ? 'through' : 'normal'), clip: !!opts.clip,
     fx: { ...FX_DEFAULT, ...(opts.fx || {}) },
   };
 }
 function makeShaderLayer(opts = {}) {
-  const n = layers.filter(l => l.type === 'shader').length + 1;
+  const n = allNodes().filter(l => l.type === 'shader').length + 1;
   return {
     ...common(opts), type: 'shader', name: opts.name || `GLSL ${n}`,
     code: opts.code ?? NEW_SHADER_CODE, alphaMode: opts.alphaMode ?? 0,
     prog: null, U: {}, error: null, errorLines: new Set(),
   };
 }
+const rasterProps = opts => ({
+  cx: opts.cx ?? 0, cy: opts.cy ?? 0, sx: opts.sx ?? 1, sy: opts.sy ?? 1, rot: opts.rot ?? 0,
+  flipH: !!opts.flipH, flipV: !!opts.flipV, interp: opts.interp || 'smooth', tex: null,
+});
 function makeImageLayer(opts) {
-  return {
-    ...common(opts), type: 'image', name: opts.name || '画像',
-    cx: opts.cx ?? 0, cy: opts.cy ?? 0, sx: opts.sx ?? 1, sy: opts.sy ?? 1, rot: opts.rot ?? 0,
-    flipH: !!opts.flipH, flipV: !!opts.flipV, interp: opts.interp || 'smooth',
-    blob: opts.blob, url: null, tex: null, iw: 1, ih: 1,
-  };
+  return { ...common(opts), ...rasterProps(opts), type: 'image', name: opts.name || '画像',
+    blob: opts.blob, url: null, iw: 1, ih: 1 };
 }
-const layerReady = l => l.type === 'image' ? !!l.tex : !!l.prog;
+function makePaintLayer(opts) {
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, opts.pw | 0);
+  c.height = Math.max(1, opts.ph | 0);
+  const n = allNodes().filter(l => l.type === 'paint').length + 1;
+  return { ...common(opts), ...rasterProps(opts), type: 'paint', name: opts.name || `描画 ${n}`,
+    canvas: c, iw: c.width, ih: c.height, texDirty: true,
+    cx: opts.cx ?? c.width / 2, cy: opts.cy ?? c.height / 2 };
+}
+function makeFolder(opts = {}) {
+  const n = allNodes().filter(l => l.type === 'folder').length + 1;
+  return { ...common(opts, true), type: 'folder', name: opts.name || `フォルダ ${n}`,
+    open: opts.open ?? true, children: [] };
+}
+const layerReady = l => l.type === 'image' ? !!l.tex : l.type === 'shader' ? !!l.prog : true;
+const nodeShown = n => n.visible && n.opacity > 0 && layerReady(n);
 
-function insertLayer(l) {
+function insertNode(n) {
   checkpoint();
   const cur = sel();
-  const i = cur ? layers.indexOf(cur) + 1 : layers.length;
-  // クリッピング中のレイヤーの上に入れたときは、新しいレイヤーもクリッピングを引き継がない
-  layers.splice(i, 0, l);
-  selectLayer(l.id);
+  const loc = cur ? locate(cur) : null;
+  if (loc) loc.list.splice(loc.index + 1, 0, n);
+  else root.push(n);
+  selectLayer(n.id);
   dirty = true;
   scheduleSave();
 }
-function removeLayer(l) {
-  const i = layers.indexOf(l);
-  if (i < 0) return;
+function removeNode(n) {
+  const loc = locate(n);
+  if (!loc) return;
   checkpoint();
-  layers.splice(i, 1);
-  l._removed = true;       // 取り消しで戻せるようにテクスチャは残す
-  const next = layers[Math.min(i, layers.length - 1)] || null;
+  loc.list.splice(loc.index, 1);
+  const next = loc.list[Math.min(loc.index, loc.list.length - 1)] || loc.list[loc.index - 1] || loc.parent || null;
   selectLayer(next ? next.id : null);
   dirty = true;
   scheduleSave();
 }
-async function duplicateLayer(l) {
-  if (!l) return;
-  const { id, ...rest } = l;
-  let c;
-  if (l.type === 'shader') {
-    c = makeShaderLayer({ ...rest, name: l.name + ' コピー' });
-    compileLayer(c);
-  } else {
-    c = makeImageLayer({ ...rest, name: l.name + ' コピー' });
+function cloneCanvas(src) {
+  const c = document.createElement('canvas');
+  c.width = src.width; c.height = src.height;
+  c.getContext('2d').drawImage(src, 0, 0);
+  return c;
+}
+async function cloneNode(l, top) {
+  const { id, children, tex, prog, U, url, canvas: cv, ...rest } = l;
+  const name = top ? l.name + ' コピー' : l.name;
+  if (l.type === 'shader') { const c = makeShaderLayer({ ...rest, name }); compileLayer(c); return c; }
+  if (l.type === 'image') {
+    const c = makeImageLayer({ ...rest, name });
     await loadImageLayer(c);
     idb.put(c.id, c.blob).catch(() => {});
+    return c;
   }
-  insertLayer(c);
+  if (l.type === 'paint') {
+    const c = makePaintLayer({ ...rest, name, pw: cv.width, ph: cv.height });
+    c.canvas.getContext('2d').drawImage(cv, 0, 0);
+    schedulePaintSave(c);
+    return c;
+  }
+  const f = makeFolder({ ...rest, name });
+  for (const ch of children) f.children.push(await cloneNode(ch, false));
+  return f;
 }
-function moveLayer(dragId, targetId, above) {
-  const d = byId(dragId);
-  if (!d || dragId === targetId) return;
+async function duplicateNode(l) { if (l) insertNode(await cloneNode(l, true)); }
+
+function moveNode(dragId, targetId, where) {
+  const d = byId(dragId), t = byId(targetId);
+  if (!d || !t || d === t || contains(d, t)) return;
   checkpoint();
-  layers.splice(layers.indexOf(d), 1);
-  const t = layers.indexOf(byId(targetId));
-  layers.splice(above ? t + 1 : t, 0, d);
+  const from = locate(d);
+  from.list.splice(from.index, 1);
+  if (where === 'into') { t.children.push(d); t.open = true; }
+  else {
+    const to = locate(t);
+    to.list.splice(where === 'above' ? to.index + 1 : to.index, 0, d);
+  }
   renderLayerList();
   dirty = true;
   scheduleSave();
@@ -921,19 +1045,43 @@ function toggleClip() {
   if (!l) return;
   checkpoint();
   l.clip = !l.clip;
-  renderLayerList();
-  refreshProps();
+  propChanged();
+}
+function groupSelected() {
+  const l = sel();
+  const f = makeFolder();
+  checkpoint();
+  if (l) {
+    const loc = locate(l);
+    loc.list.splice(loc.index, 1, f);
+    f.children.push(l);
+    if (l.clip) l.clip = false;
+  } else root.push(f);
+  selectLayer(f.id);
   dirty = true;
   scheduleSave();
 }
 
-/* ---------- image layers ---------- */
+/* ---------- raster layers ---------- */
 function applyInterp(l) {
   if (!l.tex) return;
   gl.bindTexture(gl.TEXTURE_2D, l.tex);
   const near = l.interp === 'nearest';
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, near ? gl.NEAREST : gl.LINEAR_MIPMAP_LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, near ? gl.NEAREST : gl.LINEAR);
+}
+function uploadTexture(l, src) {
+  if (!l.tex) l.tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, l.tex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  applyInterp(l);
 }
 async function loadImageLayer(l) {
   const url = URL.createObjectURL(l.blob);
@@ -951,19 +1099,8 @@ async function loadImageLayer(l) {
     c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
     src = c;
   }
-  const tex = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
-  gl.generateMipmap(gl.TEXTURE_2D);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  l.tex = tex;
+  uploadTexture(l, src);
   l.url = url;
-  applyInterp(l);
 }
 async function addImageFiles(files) {
   const imgs = [...files].filter(f => f.type.startsWith('image/'));
@@ -974,12 +1111,26 @@ async function addImageFiles(files) {
     catch (e) { setStatus(`${f.name} を読み込めませんでした`); continue; }
     const k = Math.min(1, s.w / l.iw, s.h / l.ih);   // キャンバスより大きければ収める
     Object.assign(l, { cx: s.w / 2, cy: s.h / 2, sx: k, sy: k });
-    insertLayer(l);
+    insertNode(l);
     idb.put(l.id, f).catch(() => {});
   }
 }
+function addPaintLayer() {
+  const s = S();
+  const l = makePaintLayer({ pw: s.w, ph: s.h, cx: s.w / 2, cy: s.h / 2 });
+  insertNode(l);
+  return l;
+}
+const paintTimers = new Map();
+function schedulePaintSave(l) {
+  clearTimeout(paintTimers.get(l.id));
+  paintTimers.set(l.id, setTimeout(() => {
+    l.canvas.toBlob(b => { if (b) idb.put(l.id, b).catch(() => {}); }, 'image/png');
+  }, 700));
+}
+const canvasToBlob = c => new Promise(res => c.toBlob(res, 'image/png'));
 
-/* ---------- image transform math（出力px・左上原点・y下向き） ---------- */
+/* ---------- transform math（出力px・左上原点・y下向き） ---------- */
 function tf(l) {
   const t = l.rot * Math.PI / 180;
   return { c: Math.cos(t), s: Math.sin(t), ssx: l.sx * (l.flipH ? -1 : 1), ssy: l.sy * (l.flipV ? -1 : 1) };
@@ -1041,40 +1192,40 @@ function parseErrors(info, userLines) {
 }
 
 /* ================================================================
-   Undo / Redo（レイヤー構成・プロパティ・変形・加工。コード編集はエディタ側の取り消し）
+   Undo / Redo（構成・プロパティ・変形・加工・描画。コード編集はエディタ側の取り消し）
    ================================================================ */
-const PROP_KEYS = ['name','visible','opacity','blend','clip','alphaMode','cx','cy','sx','sy','rot','flipH','flipV','interp'];
+const PROP_KEYS = ['name','visible','opacity','blend','clip','alphaMode','cx','cy','sx','sy','rot','flipH','flipV','interp','open','canvas'];
 const hist = { undo: [], redo: [], key: null, time: 0 };
-function snapshot() {
-  return {
-    selId,
-    items: layers.map(l => {
-      const p = {};
-      for (const k of PROP_KEYS) if (k in l) p[k] = l[k];
-      p.fx = { ...l.fx };
-      return { l, p };
-    }),
-  };
+function snapNode(n) {
+  const p = {};
+  for (const k of PROP_KEYS) if (k in n) p[k] = n[k];
+  p.fx = { ...n.fx };
+  return { n, p, kids: n.type === 'folder' ? n.children.map(snapNode) : null };
 }
+const snapshot = () => ({ selId, items: root.map(snapNode) });
 function checkpoint(key) {
   if (booting) return;
   const now = performance.now();
   if (key && key === hist.key && now - hist.time < 1200) { hist.time = now; return; }
   hist.undo.push(snapshot());
-  if (hist.undo.length > 120) hist.undo.shift();
+  if (hist.undo.length > 60) hist.undo.shift();
   hist.redo = [];
   hist.key = key || null;
   hist.time = now;
   updateUndoButtons();
 }
+function restNode(s) {
+  const n = s.n;
+  const oldCanvas = n.canvas;
+  Object.assign(n, s.p, { fx: { ...s.p.fx } });
+  if (s.kids) n.children = s.kids.map(restNode);
+  if (n.type === 'paint' && n.canvas !== oldCanvas) { n.texDirty = true; schedulePaintSave(n); }
+  if (n.type === 'image') applyInterp(n);
+  return n;
+}
 function restoreSnapshot(snap) {
-  layers = snap.items.map(({ l, p }) => {
-    Object.assign(l, p, { fx: { ...p.fx } });
-    if (l.type === 'image') applyInterp(l);
-    if (l._removed) { l._removed = false; if (l.type === 'image') idb.put(l.id, l.blob).catch(() => {}); }
-    return l;
-  });
-  selectLayer(byId(snap.selId) ? snap.selId : (layers.at(-1)?.id ?? null));
+  root = snap.items.map(restNode);
+  selectLayer(byId(snap.selId) ? snap.selId : (root.at(-1)?.id ?? null));
   dirty = true;
   scheduleSave();
 }
@@ -1104,99 +1255,137 @@ $('#redoBtn').addEventListener('click', redo);
    ================================================================ */
 const EYE_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l18 18M10.6 5.1A10.6 10.6 0 0 1 12 5c7 0 11 7 11 7a18 18 0 0 1-3.2 4M6.6 6.6C3 8.6 1 12 1 12s4 7 11 7a10 10 0 0 0 5.4-1.6"/></svg>';
+const FOLDER_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" opacity=".9"/></svg>';
 
 function renderLayerList() {
   const ul = $('#layerList');
   ul.innerHTML = '';
-  if (!layers.length) {
-    ul.innerHTML = '<li class="empty">レイヤーがありません。<br>＋GLSL／＋画像 で追加できます。<br>画像はプレビューへのドロップや<br>Ctrl/⌘+V の貼り付けでも追加できます。</li>';
+  if (!root.length) {
+    ul.innerHTML = '<li class="empty">レイヤーがありません。<br>＋GLSL／＋画像／＋描画 で追加できます。<br>画像はプレビューへのドロップや<br>Ctrl/⌘+V の貼り付けでも追加できます。</li>';
     return;
   }
-  for (let i = layers.length - 1; i >= 0; i--) {
-    const l = layers[i];
-    const li = document.createElement('li');
-    li.draggable = true;
-    if (l.id === selId) li.classList.add('sel');
-    if (!l.visible) li.classList.add('off');
-    if (l.clip && i > 0) li.classList.add('clip');
-
-    const eye = document.createElement('button');
-    eye.className = 'eye';
-    eye.title = '表示／非表示';
-    eye.innerHTML = l.visible ? EYE_ON : EYE_OFF;
-    eye.addEventListener('click', e => {
-      e.stopPropagation();
-      checkpoint();
-      l.visible = !l.visible;
-      renderLayerList();
-      dirty = true;
-      scheduleSave();
-    });
-
-    const thumb = document.createElement('div');
-    if (l.type === 'image') {
-      thumb.className = 'thumb';
-      const im = document.createElement('img');
-      im.src = l.url;
-      im.draggable = false;
-      thumb.appendChild(im);
-    } else {
-      thumb.className = 'thumb glsl';
-      thumb.textContent = 'GLSL';
+  const addRows = (list, depth, parentHidden) => {
+    for (let i = list.length - 1; i >= 0; i--) {
+      const l = list[i];
+      ul.appendChild(layerRow(l, depth, parentHidden, i > 0 && l.clip));
+      if (l.type === 'folder' && l.open) addRows(l.children, depth + 1, parentHidden || !l.visible);
     }
+  };
+  addRows(root, 0, false);
+}
 
-    const nameBox = document.createElement('div');
-    nameBox.style.cssText = 'flex:1;min-width:0';
-    const name = document.createElement('div');
-    name.className = 'lname';
-    name.textContent = l.name;
-    name.title = 'ダブルクリックで名前を変更';
-    const meta = document.createElement('div');
-    meta.className = 'lmeta';
-    const bits = [];
-    if (l.blend !== 'normal') bits.push(BLEND_LABEL[l.blend]);
-    if (l.opacity < 1) bits.push(Math.round(l.opacity * 100) + '%');
-    if (fxActive(l.fx)) bits.push('加工');
-    meta.textContent = bits.join(' · ');
-    nameBox.append(name, meta);
+function layerRow(l, depth, parentHidden, clipped) {
+  const li = document.createElement('li');
+  li.draggable = true;
+  li.style.setProperty('--ind', depth * 14 + 'px');
+  if (l.id === selId) li.classList.add('sel');
+  if (!l.visible) li.classList.add('off');
+  if (parentHidden) li.classList.add('hiddenByParent');
+  if (clipped) li.classList.add('clip');
 
-    li.append(eye, thumb, nameBox);
-    if (l.type === 'shader' && l.error) {
-      const d = document.createElement('span');
-      d.className = 'errdot';
-      d.title = 'コンパイルエラー';
-      li.appendChild(d);
-    }
-
-    li.addEventListener('click', () => selectLayer(l.id));
-    li.addEventListener('dblclick', () => {
-      const n = prompt('レイヤー名', l.name);
-      if (n && n.trim()) { checkpoint(); l.name = n.trim(); renderLayerList(); updateEditingLabel(); scheduleSave(); }
-    });
-    li.addEventListener('dragstart', e => {
-      e.dataTransfer.setData('text/x-layer', l.id);
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    li.addEventListener('dragover', e => {
-      if (!e.dataTransfer.types.includes('text/x-layer')) return;
-      e.preventDefault();
-      const r = li.getBoundingClientRect();
-      const above = e.clientY < r.top + r.height / 2;
-      li.classList.toggle('drop-above', above);
-      li.classList.toggle('drop-below', !above);
-    });
-    li.addEventListener('dragleave', () => li.classList.remove('drop-above', 'drop-below'));
-    li.addEventListener('drop', e => {
-      const id = e.dataTransfer.getData('text/x-layer');
-      if (!id) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const above = li.classList.contains('drop-above');
-      li.classList.remove('drop-above', 'drop-below');
-      moveLayer(id, l.id, above);
-    });
-    ul.appendChild(li);
+  if (l.type === 'folder') {
+    const caret = document.createElement('button');
+    caret.className = 'caret';
+    caret.textContent = l.open ? '▾' : '▸';
+    caret.title = l.open ? '閉じる' : '開く';
+    caret.addEventListener('click', e => { e.stopPropagation(); l.open = !l.open; renderLayerList(); scheduleSave(); });
+    li.appendChild(caret);
   }
+  const eye = document.createElement('button');
+  eye.className = 'eye';
+  eye.title = '表示／非表示';
+  eye.innerHTML = l.visible ? EYE_ON : EYE_OFF;
+  eye.addEventListener('click', e => {
+    e.stopPropagation();
+    checkpoint();
+    l.visible = !l.visible;
+    renderLayerList();
+    dirty = true;
+    scheduleSave();
+  });
+
+  const thumb = document.createElement('div');
+  if (l.type === 'image') {
+    thumb.className = 'thumb';
+    const im = document.createElement('img');
+    im.src = l.url;
+    im.draggable = false;
+    thumb.appendChild(im);
+  } else if (l.type === 'paint') {
+    thumb.className = 'thumb';
+    const c = document.createElement('canvas');
+    c.width = 76; c.height = 52;
+    const k = Math.min(76 / l.canvas.width, 52 / l.canvas.height);
+    c.getContext('2d').drawImage(l.canvas, (76 - l.canvas.width * k) / 2, (52 - l.canvas.height * k) / 2, l.canvas.width * k, l.canvas.height * k);
+    thumb.appendChild(c);
+  } else if (l.type === 'folder') {
+    thumb.className = 'thumb folder';
+    thumb.innerHTML = FOLDER_ICON;
+  } else {
+    thumb.className = 'thumb glsl';
+    thumb.textContent = 'GLSL';
+  }
+
+  const nameBox = document.createElement('div');
+  nameBox.style.cssText = 'flex:1;min-width:0';
+  const name = document.createElement('div');
+  name.className = 'lname';
+  name.textContent = l.name;
+  name.title = 'ダブルクリックで名前を変更';
+  const meta = document.createElement('div');
+  meta.className = 'lmeta';
+  const bits = [];
+  const defBlend = l.type === 'folder' ? 'through' : 'normal';
+  if (l.blend !== defBlend) bits.push(BLEND_LABEL[l.blend]);
+  if (l.opacity < 1) bits.push(Math.round(l.opacity * 100) + '%');
+  if (fxActive(l.fx)) bits.push('加工');
+  if (l.type === 'folder') bits.push(`${l.children.length}`);
+  meta.textContent = bits.join(' · ');
+  nameBox.append(name, meta);
+
+  li.append(eye, thumb, nameBox);
+  if (l.type === 'shader' && l.error) {
+    const d = document.createElement('span');
+    d.className = 'errdot';
+    d.title = 'コンパイルエラー';
+    li.appendChild(d);
+  }
+
+  li.addEventListener('click', () => selectLayer(l.id));
+  li.addEventListener('dblclick', e => {
+    if (e.target.closest('.caret,.eye')) return;
+    const n = prompt('レイヤー名', l.name);
+    if (n && n.trim()) { checkpoint(); l.name = n.trim(); renderLayerList(); updateEditingLabel(); scheduleSave(); }
+  });
+  li.addEventListener('dragstart', e => {
+    e.dataTransfer.setData('text/x-layer', l.id);
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  const zone = e => {
+    const r = li.getBoundingClientRect();
+    const y = (e.clientY - r.top) / r.height;
+    if (l.type === 'folder') return y < 0.28 ? 'above' : y > 0.72 ? 'below' : 'into';
+    return y < 0.5 ? 'above' : 'below';
+  };
+  li.addEventListener('dragover', e => {
+    if (!e.dataTransfer.types.includes('text/x-layer')) return;
+    e.preventDefault();
+    const z = zone(e);
+    li.classList.toggle('drop-above', z === 'above');
+    li.classList.toggle('drop-below', z === 'below');
+    li.classList.toggle('drop-into', z === 'into');
+  });
+  li.addEventListener('dragleave', () => li.classList.remove('drop-above', 'drop-below', 'drop-into'));
+  li.addEventListener('drop', e => {
+    const id = e.dataTransfer.getData('text/x-layer');
+    if (!id) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const z = zone(e);
+    li.classList.remove('drop-above', 'drop-below', 'drop-into');
+    moveNode(id, l.id, z);
+  });
+  return li;
 }
 
 function selectLayer(id) {
@@ -1237,11 +1426,15 @@ function refreshProps() {
   $('#clipBtn').disabled = !l;
   $('#dupLayer').disabled = $('#delLayer').disabled = !l;
   if (!l) return;
-  document.querySelectorAll('#props [data-for]').forEach(el => { el.hidden = el.dataset.for !== l.type; });
+  document.querySelectorAll('#props [data-for]').forEach(el => {
+    const f = el.dataset.for;
+    el.hidden = !(f === l.type || (f === 'raster' && isRaster(l)));
+  });
+  $('#pBlend').querySelector('[value=through]').hidden = l.type !== 'folder';
   $('#pOpacity').value = $('#pOpacityN').value = Math.round(l.opacity * 100);
   $('#pBlend').value = l.blend;
   if (l.type === 'shader') $('#pAlpha').value = l.alphaMode;
-  else refreshImageProps(l);
+  if (isRaster(l)) refreshImageProps(l);
   const f = l.fx;
   $('#fxKey').value = f.key;
   $('#fxColorOn').checked = f.colorOn;
@@ -1263,7 +1456,7 @@ function refreshImageProps(l) {
   $('#pInterp').value = l.interp;
 }
 function propChanged() { dirty = true; renderLayerList(); refreshProps(); scheduleSave(); }
-const withImage = fn => () => { const l = sel(); if (l && l.type === 'image') fn(l); };
+const withRaster = fn => () => { const l = sel(); if (isRaster(l)) fn(l); };
 
 $('#pOpacity').addEventListener('input', () => {
   const l = sel(); if (!l) return;
@@ -1279,48 +1472,46 @@ $('#pOpacityN').addEventListener('change', () => {
 });
 $('#pBlend').addEventListener('change', () => { const l = sel(); if (!l) return; checkpoint(); l.blend = $('#pBlend').value; propChanged(); });
 $('#pAlpha').addEventListener('change', () => { const l = sel(); if (!l) return; checkpoint(); l.alphaMode = +$('#pAlpha').value; propChanged(); });
-$('#pCX').addEventListener('change', withImage(l => { checkpoint(); l.cx = +$('#pCX').value || 0; propChanged(); }));
-$('#pCY').addEventListener('change', withImage(l => { checkpoint(); l.cy = +$('#pCY').value || 0; propChanged(); }));
-$('#pSW').addEventListener('change', withImage(l => {
+$('#pCX').addEventListener('change', withRaster(l => { checkpoint(); l.cx = +$('#pCX').value || 0; propChanged(); }));
+$('#pCY').addEventListener('change', withRaster(l => { checkpoint(); l.cy = +$('#pCY').value || 0; propChanged(); }));
+$('#pSW').addEventListener('change', withRaster(l => {
   checkpoint();
   const v = Math.max(0.1, +$('#pSW').value || 100) / 100;
   if ($('#pLock').checked) l.sy *= v / l.sx;
   l.sx = v;
   propChanged();
 }));
-$('#pSH').addEventListener('change', withImage(l => {
+$('#pSH').addEventListener('change', withRaster(l => {
   checkpoint();
   const v = Math.max(0.1, +$('#pSH').value || 100) / 100;
   if ($('#pLock').checked) l.sx *= v / l.sy;
   l.sy = v;
   propChanged();
 }));
-$('#pRot').addEventListener('input', withImage(l => { checkpoint('rot' + l.id); l.rot = +$('#pRot').value; $('#pRotN').value = l.rot; dirty = true; scheduleSave(); }));
-$('#pRotN').addEventListener('change', withImage(l => { checkpoint(); l.rot = +$('#pRotN').value || 0; propChanged(); }));
-$('#pFlipH').addEventListener('click', withImage(l => { checkpoint(); l.flipH = !l.flipH; propChanged(); }));
-$('#pFlipV').addEventListener('click', withImage(l => { checkpoint(); l.flipV = !l.flipV; propChanged(); }));
-$('#pReset').addEventListener('click', withImage(l => {
+$('#pRot').addEventListener('input', withRaster(l => { checkpoint('rot' + l.id); l.rot = +$('#pRot').value; $('#pRotN').value = l.rot; dirty = true; scheduleSave(); }));
+$('#pRotN').addEventListener('change', withRaster(l => { checkpoint(); l.rot = +$('#pRotN').value || 0; propChanged(); }));
+$('#pFlipH').addEventListener('click', withRaster(l => { checkpoint(); l.flipH = !l.flipH; propChanged(); }));
+$('#pFlipV').addEventListener('click', withRaster(l => { checkpoint(); l.flipV = !l.flipV; propChanged(); }));
+$('#pReset').addEventListener('click', withRaster(l => {
   checkpoint();
   const s = S();
   Object.assign(l, { cx: s.w / 2, cy: s.h / 2, sx: 1, sy: 1, rot: 0, flipH: false, flipV: false });
   propChanged();
 }));
-$('#pFitCanvas').addEventListener('click', withImage(l => {
+$('#pFitCanvas').addEventListener('click', withRaster(l => {
   checkpoint();
   const s = S();
   const k = Math.min(s.w / l.iw, s.h / l.ih);
   Object.assign(l, { cx: s.w / 2, cy: s.h / 2, sx: k, sy: k, rot: 0 });
   propChanged();
 }));
-$('#pFitOut').addEventListener('click', withImage(l => {
+$('#pFitOut').addEventListener('click', withRaster(l => {
   checkpoint();
-  $('#w').value = l.iw; $('#h').value = l.ih;
+  setOutputSize(l.iw, l.ih);
   Object.assign(l, { cx: l.iw / 2, cy: l.ih / 2, sx: 1, sy: 1, rot: 0 });
-  onSettingsChange();
-  fitView();
   propChanged();
 }));
-$('#pInterp').addEventListener('change', withImage(l => { checkpoint(); l.interp = $('#pInterp').value; applyInterp(l); propChanged(); }));
+$('#pInterp').addEventListener('change', withRaster(l => { checkpoint(); l.interp = $('#pInterp').value; applyInterp(l); propChanged(); }));
 
 $('#fxKey').addEventListener('change', () => { const l = sel(); if (!l) return; checkpoint(); l.fx.key = $('#fxKey').value; propChanged(); });
 $('#fxColorOn').addEventListener('change', () => { const l = sel(); if (!l) return; checkpoint(); l.fx.colorOn = $('#fxColorOn').checked; propChanged(); });
@@ -1330,14 +1521,16 @@ $('#fxOutlineColor').addEventListener('input', () => { const l = sel(); if (!l) 
 $('#fxReset').addEventListener('click', () => { const l = sel(); if (!l) return; checkpoint(); l.fx = { ...FX_DEFAULT }; propChanged(); });
 
 $('#clipBtn').addEventListener('click', toggleClip);
-$('#dupLayer').addEventListener('click', () => duplicateLayer(sel()));
-$('#delLayer').addEventListener('click', () => { const l = sel(); if (l) removeLayer(l); });
+$('#dupLayer').addEventListener('click', () => duplicateNode(sel()));
+$('#delLayer').addEventListener('click', () => { const l = sel(); if (l) removeNode(l); });
 $('#addShader').addEventListener('click', () => {
   const l = makeShaderLayer();
   compileLayer(l);
-  insertLayer(l);
+  insertNode(l);
   code.focus();
 });
+$('#addPaint').addEventListener('click', () => { addPaintLayer(); setTool('pen'); });
+$('#addFolder').addEventListener('click', () => insertNode(makeFolder()));
 $('#addImage').addEventListener('change', async e => { await addImageFiles(e.target.files); e.target.value = ''; });
 
 /* ---------- drop & paste ---------- */
@@ -1384,7 +1577,7 @@ function loadEditor() {
   } else {
     code.disabled = true;
     code.value = '';
-    code.placeholder = l ? '画像レイヤーを選択中です。\nシェーダーを編集するには GLSL レイヤーを選んでください。'
+    code.placeholder = l ? `${l.type === 'folder' ? 'フォルダ' : l.type === 'paint' ? '描画レイヤー' : '画像レイヤー'}を選択中です。\nシェーダーを編集するには GLSL レイヤーを選んでください。`
                          : '＋GLSL でシェーダーレイヤーを追加してください。';
   }
   updateEditingLabel();
@@ -1406,17 +1599,20 @@ function updateGutter() {
 }
 code.addEventListener('scroll', () => { gutter.scrollTop = code.scrollTop; });
 
+const TRANSFORM_HELP = `移動ツール（V）：枠の内側ドラッグで移動（Shiftで水平・垂直）　□ハンドルで拡大縮小（Shiftで縦横比固定を切替・Altで中心基準）　枠の外ドラッグで回転（Shiftで15°刻み）　矢印キーで1px（Shiftで10px）
+ペン（P）・消しゴム（E）・投げ縄（L）・手のひら（H）　[ ] でブラシサイズ
+ホイール：表示倍率　Space＋ドラッグ：表示移動　Ctrl/⌘+0：全体表示　Ctrl/⌘+クリック：画像を選択`;
 function showLayerLog() {
   const l = sel();
   if (!l) { log.textContent = ''; log.className = 'log'; return; }
-  if (l.type === 'image') {
-    log.textContent = `画像 ${l.iw}×${l.ih}\n枠の内側ドラッグ：移動（Shiftで水平・垂直）　□ハンドル：拡大縮小（Shiftで縦横比固定を切替・Altで中心基準）\n枠の外ドラッグ：回転（Shiftで15°刻み）　矢印キー：1px移動（Shiftで10px）\nホイール：表示倍率　Space＋ドラッグ／中ボタン：表示移動　Ctrl/⌘+0：全体表示　Ctrl/⌘+クリック：画像レイヤーを選択`;
-    log.className = 'log info';
-  } else if (l.error) {
-    log.textContent = l.error; log.className = 'log err';
-  } else {
-    log.textContent = '✓ コンパイルOK'; log.className = 'log ok';
+  if (l.type === 'shader') {
+    if (l.error) { log.textContent = l.error; log.className = 'log err'; }
+    else { log.textContent = '✓ コンパイルOK'; log.className = 'log ok'; }
+    return;
   }
+  const head = l.type === 'image' ? `画像 ${l.iw}×${l.ih}` : l.type === 'paint' ? `描画 ${l.iw}×${l.ih}` : `フォルダ（${l.children.length}）`;
+  log.textContent = head + '\n' + TRANSFORM_HELP;
+  log.className = 'log info';
 }
 
 code.addEventListener('keydown', e => {
@@ -1445,7 +1641,7 @@ function onCodeInput() {
 code.addEventListener('input', onCodeInput);
 $('#btnCompile').addEventListener('click', () => { const l = sel(); if (l && l.type === 'shader') compileLayer(l); });
 
-/* ---------- presets / save / open ---------- */
+/* ---------- presets / GLSL file ---------- */
 const presetSel = $('#preset');
 PRESETS.forEach((p, i) => presetSel.add(new Option(p.name, i)));
 presetSel.addEventListener('change', () => {
@@ -1456,7 +1652,7 @@ presetSel.addEventListener('change', () => {
   if (!l || l.type !== 'shader') {
     l = makeShaderLayer({ name: p.name, code: p.code, alphaMode: p.alphaMode, blend: p.blend });
     compileLayer(l);
-    insertLayer(l);
+    insertNode(l);
     return;
   }
   const untouched = !l.code.trim() || l.code === NEW_SHADER_CODE || PRESETS.some(q => q.code === l.code);
@@ -1486,7 +1682,7 @@ async function openShaderFile(f) {
   } else {
     const n = makeShaderLayer({ name: base, code: text });
     compileLayer(n);
-    insertLayer(n);
+    insertNode(n);
   }
 }
 $('#fileOpen').addEventListener('change', async e => {
@@ -1496,7 +1692,7 @@ $('#fileOpen').addEventListener('change', async e => {
 });
 
 /* ================================================================
-   Settings / View
+   Settings / output size / view
    ================================================================ */
 const num = (id, def, min, max) => {
   let v = parseFloat($(id).value);
@@ -1516,6 +1712,57 @@ function S() {
   };
 }
 const frameCountOf = s => Math.max(1, Math.round(s.dur * s.fps));
+
+/* ---------- 比率・長辺のプルダウン ---------- */
+const RATIOS = [
+  ['16:9', 16, 9], ['9:16', 9, 16], ['1:1', 1, 1], ['4:3', 4, 3], ['3:4', 3, 4], ['3:2', 3, 2], ['2:3', 2, 3],
+  ['4:5', 4, 5], ['5:4', 5, 4], ['21:9', 21, 9], ['2:1', 2, 1], ['1:2', 1, 2],
+  ['A判 横', Math.SQRT2, 1], ['A判 縦', 1, Math.SQRT2],
+];
+const LONG_SIDES = [512, 720, 1024, 1080, 1280, 1920, 2048, 2560, 3000, 3840, 4096];
+(() => {
+  const r = $('#ratio');
+  r.add(new Option('自由', 'free'));
+  RATIOS.forEach(([label], i) => r.add(new Option(label, i)));
+  const ls = $('#longSide');
+  ls.add(new Option('—', 'custom'));
+  LONG_SIDES.forEach(v => ls.add(new Option(v + 'px', v)));
+})();
+function setOutputSize(w, h) {
+  $('#w').value = Math.max(1, Math.round(w));
+  $('#h').value = Math.max(1, Math.round(h));
+  onSettingsChange();
+  fitView();
+}
+function applyRatio() {
+  const ri = $('#ratio').value;
+  if (ri === 'free') return;
+  const [, rw, rh] = RATIOS[+ri];
+  const s = S();
+  const L = $('#longSide').value === 'custom' ? Math.max(s.w, s.h) : +$('#longSide').value;
+  if (rw >= rh) setOutputSize(L, L * rh / rw);
+  else setOutputSize(L * rw / rh, L);
+}
+function syncRatioUI() {
+  const s = S();
+  const r = s.w / s.h;
+  const idx = RATIOS.findIndex(([, rw, rh]) => Math.abs(r / (rw / rh) - 1) < 0.004);
+  $('#ratio').value = idx >= 0 ? idx : 'free';
+  const L = Math.max(s.w, s.h);
+  const ls = $('#longSide');
+  ls.options[0].textContent = LONG_SIDES.includes(L) ? '—' : `${L}px`;
+  ls.value = LONG_SIDES.includes(L) ? L : 'custom';
+}
+$('#ratio').addEventListener('change', applyRatio);
+$('#longSide').addEventListener('change', () => {
+  if ($('#ratio').value === 'free') {
+    const s = S(), L = +$('#longSide').value;
+    if (!L) return;
+    const k = L / Math.max(s.w, s.h);
+    setOutputSize(s.w * k, s.h * k);
+  } else applyRatio();
+});
+$('#swapWH').addEventListener('click', () => { const s = S(); setOutputSize(s.h, s.w); });
 
 function applyResolution(scale) {
   const s = S();
@@ -1574,6 +1821,7 @@ function onSettingsChange() {
   applyResolution();
   fitStage();
   updateFrameInfo();
+  syncRatioUI();
   scheduleSave();
 }
 ['#w','#h','#fps','#dur','#start','#prefix','#blackBg','#pscale'].forEach(id =>
@@ -1597,9 +1845,83 @@ function applyBg() {
 $('#bgMode').addEventListener('change', applyBg);
 $('#bgColor').addEventListener('input', applyBg);
 
+/* ---------- エディタ／ビューポートの比率 ---------- */
+const UI_KEY = 'glsl-effect-exporter.ui';
+const ui = { edw: null, lastEdw: 480, tool: 'move' };
+function loadUI() {
+  try { Object.assign(ui, JSON.parse(localStorage.getItem(UI_KEY) || '{}')); } catch (_) {}
+  for (const id of ['brushColor', 'brushSize', 'brushOpacity', 'brushPressure', 'lassoMode']) {
+    if (ui[id] === undefined) continue;
+    const el = $('#' + id);
+    if (el.type === 'checkbox') el.checked = !!ui[id]; else el.value = ui[id];
+  }
+  $('#brushSizeN').value = $('#brushSize').value;
+  $('#brushOpacityN').value = $('#brushOpacity').value;
+  applyEditorWidth(ui.edw);
+}
+function saveUI() {
+  for (const id of ['brushColor', 'brushSize', 'brushOpacity', 'brushPressure', 'lassoMode']) {
+    const el = $('#' + id);
+    ui[id] = el.type === 'checkbox' ? el.checked : el.value;
+  }
+  try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (_) {}
+}
+function applyEditorWidth(px) {
+  const app = $('#app');
+  if (px === null || px === undefined) { app.style.removeProperty('--edw'); app.classList.remove('collapsed'); return; }
+  app.style.setProperty('--edw', px + 'px');
+  app.classList.toggle('collapsed', px === 0);
+}
+(() => {
+  const sp = $('#splitter');
+  let drag = null;
+  sp.addEventListener('pointerdown', e => {
+    sp.setPointerCapture(e.pointerId);
+    sp.classList.add('drag');
+    drag = { x0: e.clientX, w0: $('.editor-col').getBoundingClientRect().width };
+  });
+  sp.addEventListener('pointermove', e => {
+    if (!drag) return;
+    let w = drag.w0 + (e.clientX - drag.x0);
+    w = Math.min(window.innerWidth - 520, Math.max(0, w));
+    if (w < 140) w = 0;
+    ui.edw = Math.round(w);
+    if (w > 0) ui.lastEdw = ui.edw;
+    applyEditorWidth(ui.edw);
+  });
+  const end = () => { if (!drag) return; drag = null; sp.classList.remove('drag'); saveUI(); };
+  sp.addEventListener('pointerup', end);
+  sp.addEventListener('pointercancel', end);
+  sp.addEventListener('dblclick', () => {
+    ui.edw = ui.edw === 0 ? (ui.lastEdw || 480) : 0;
+    applyEditorWidth(ui.edw);
+    saveUI();
+  });
+})();
+
 /* ================================================================
-   変形ツール（オーバーレイ上の操作）
+   ツール（移動・変形 / ペン / 消しゴム / 投げ縄 / 手のひら）
    ================================================================ */
+let tool = 'move';
+function setTool(t) {
+  tool = t;
+  ui.tool = t;
+  document.querySelectorAll('#toolbar [data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
+  document.querySelectorAll('#toolopts [data-for]').forEach(el => { el.hidden = !el.dataset.for.split(' ').includes(t); });
+  updateCursor();
+  saveUI();
+}
+document.querySelectorAll('#toolbar [data-tool]').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
+const bindPair = (r, n) => {
+  $(r).addEventListener('input', () => { $(n).value = $(r).value; saveUI(); });
+  $(n).addEventListener('change', () => { $(r).value = $(n).value; $(n).value = $(r).value; saveUI(); });
+};
+bindPair('#brushSize', '#brushSizeN');
+bindPair('#brushOpacity', '#brushOpacityN');
+['#brushColor', '#brushPressure', '#lassoMode'].forEach(id => $(id).addEventListener('change', saveUI));
+const brushSize = () => Math.max(1, +$('#brushSizeN').value || 8);
+function setBrushSize(v) { v = Math.min(500, Math.max(1, Math.round(v))); $('#brushSizeN').value = v; $('#brushSize').value = v; saveUI(); }
+
 const HANDLES = [
   ['nw', 0, 0], ['n', 0.5, 0], ['ne', 1, 0], ['e', 1, 0.5],
   ['se', 1, 1], ['s', 0.5, 1], ['sw', 0, 1], ['w', 0, 0.5],
@@ -1608,7 +1930,7 @@ const ROT_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 2-5" fill="none" stroke="#000" stroke-width="4"/><path d="M5 12a7 7 0 1 0 2-5" fill="none" stroke="#fff" stroke-width="2"/><path d="M3 3v6h6z" fill="#fff" stroke="#000"/></svg>')}") 12 12, auto`;
 
 const mouse = { x: 0, y: 0, cx: 0, cy: 0, down: false };
-let op = null, spaceDown = false, hoverInfo = null;
+let op = null, spaceDown = false, hover = null;
 
 const toScreen = (ox, oy) => [view.left + ox * view.k, view.top + oy * view.k];
 const toOut = (mx, my) => [(mx - view.left) / view.k, (my - view.top) / view.k];
@@ -1616,7 +1938,6 @@ function localPoint(e) {
   const r = previewEl.getBoundingClientRect();
   return [e.clientX - r.left, e.clientY - r.top];
 }
-
 function hitTest(l, mx, my) {
   for (const [id, hx, hy] of HANDLES) {
     const [sx, sy] = toScreen(...localToOut(l, hx * l.iw, hy * l.ih));
@@ -1633,32 +1954,95 @@ function resizeCursor(l, hx, hy) {
   return a < 22.5 || a >= 157.5 ? 'ew-resize' : a < 67.5 ? 'nwse-resize' : a < 112.5 ? 'ns-resize' : 'nesw-resize';
 }
 function updateCursor(mx, my) {
+  if (mx !== undefined) hover = [mx, my];
   if (op) return;
-  if (spaceDown) { overlay.style.cursor = 'grab'; return; }
+  if (spaceDown || tool === 'hand') { overlay.style.cursor = 'grab'; return; }
+  if (tool === 'pen' || tool === 'eraser') { overlay.style.cursor = 'none'; return; }
+  if (tool === 'lasso') { overlay.style.cursor = 'crosshair'; return; }
   const l = sel();
-  if (!l || l.type !== 'image' || !l.visible || mx === undefined) {
-    overlay.style.cursor = l && l.type === 'image' ? 'default' : 'crosshair';
+  if (!isRaster(l) || !l.visible || !hover) {
+    overlay.style.cursor = isRaster(l) ? 'default' : 'crosshair';
     return;
   }
-  const h = hitTest(l, mx, my);
-  hoverInfo = h;
+  const h = hitTest(l, ...hover);
   overlay.style.cursor = h.type === 'handle' ? resizeCursor(l, h.hx, h.hy) : h.type === 'inside' ? 'move' : ROT_CURSOR;
 }
-
-function pickImageAt(mx, my) {
+function pickRasterAt(mx, my) {
   const [ox, oy] = toOut(mx, my);
-  for (let i = layers.length - 1; i >= 0; i--) {
-    const l = layers[i];
-    if (l.type !== 'image' || !l.visible) continue;
+  const list = allNodes().filter(isRaster).reverse();   // 上から
+  for (const l of list) {
+    if (!l.visible) continue;
     const [Lx, Ly] = outToLocal(l, ox, oy);
     if (Lx >= 0 && Ly >= 0 && Lx <= l.iw && Ly <= l.ih) { selectLayer(l.id); return true; }
   }
   return false;
 }
 
+/* ---------- 描画（ペン・消しゴム・投げ縄） ---------- */
+function paintTarget(forErase) {
+  const l = sel();
+  if (l && l.type === 'paint') return l;
+  if (forErase) { setStatus('消しゴム・投げ縄消去は描画レイヤーを選んで使います'); return null; }
+  return addPaintLayer();
+}
+function beginPaintEdit(l) {
+  // コピーオンライト：元のキャンバスは取り消し用に残す
+  checkpoint();
+  paintEditCount++;
+  const base = l.canvas;
+  l.canvas = cloneCanvas(base);
+  return base;
+}
+function strokeComposite(o) {
+  const ctx = o.l.canvas.getContext('2d');
+  ctx.save();
+  ctx.globalCompositeOperation = 'copy';
+  ctx.drawImage(o.base, 0, 0);
+  ctx.globalCompositeOperation = o.eraser ? 'destination-out' : 'source-over';
+  ctx.globalAlpha = o.opacity;
+  ctx.drawImage(o.stroke, 0, 0);
+  ctx.restore();
+  o.l.texDirty = true;
+  dirty = true;
+}
+function strokeTo(o, ox, oy, pressure) {
+  const [x, y] = outToLocal(o.l, ox, oy);
+  const scale = Math.max(1e-3, (o.l.sx + o.l.sy) / 2);
+  const w = Math.max(0.5, brushSize() * (o.usePressure ? pressure : 1) / scale);
+  const c = o.sctx;
+  c.fillStyle = c.strokeStyle = o.eraser ? '#000' : $('#brushColor').value;
+  if (!o.last) {
+    c.beginPath(); c.arc(x, y, w / 2, 0, Math.PI * 2); c.fill();
+  } else {
+    c.lineWidth = w;
+    c.beginPath(); c.moveTo(o.last[0], o.last[1]); c.lineTo(x, y); c.stroke();
+  }
+  o.last = [x, y];
+}
+function fillLasso(l, pts, mode) {
+  const base = beginPaintEdit(l);
+  const ctx = l.canvas.getContext('2d');
+  ctx.save();
+  ctx.beginPath();
+  pts.forEach(([ox, oy], i) => { const [x, y] = outToLocal(l, ox, oy); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+  ctx.closePath();
+  ctx.globalAlpha = (+$('#brushOpacityN').value || 100) / 100;
+  ctx.globalCompositeOperation = mode === 'erase' ? 'destination-out' : 'source-over';
+  ctx.fillStyle = mode === 'erase' ? '#000' : $('#brushColor').value;
+  ctx.fill();
+  ctx.restore();
+  void base;
+  l.texDirty = true;
+  dirty = true;
+  schedulePaintSave(l);
+  renderLayerList();
+  scheduleSave();
+}
+
 overlay.addEventListener('pointerdown', e => {
   const [mx, my] = localPoint(e);
-  if (e.button === 1 || (e.button === 0 && spaceDown)) {
+  hover = [mx, my];
+  if (e.button === 1 || (e.button === 0 && (spaceDown || tool === 'hand'))) {
     e.preventDefault();
     overlay.setPointerCapture(e.pointerId);
     op = { type: 'pan', sx: e.clientX, sy: e.clientY, px: view.panX, py: view.panY };
@@ -1666,25 +2050,44 @@ overlay.addEventListener('pointerdown', e => {
     return;
   }
   if (e.button !== 0) return;
-  if (e.ctrlKey || e.metaKey) { pickImageAt(mx, my); return; }
+  if ((e.ctrlKey || e.metaKey) && tool === 'move') { pickRasterAt(mx, my); return; }
+  const [ox, oy] = toOut(mx, my);
+
+  if (tool === 'pen' || tool === 'eraser') {
+    const l = paintTarget(tool === 'eraser');
+    if (!l) return;
+    if (!l.visible) { setStatus('非表示のレイヤーには描けません'); return; }
+    overlay.setPointerCapture(e.pointerId);
+    const base = beginPaintEdit(l);
+    const stroke = document.createElement('canvas');
+    stroke.width = l.canvas.width; stroke.height = l.canvas.height;
+    const sctx = stroke.getContext('2d');
+    sctx.lineCap = 'round'; sctx.lineJoin = 'round';
+    op = { type: 'stroke', l, base, stroke, sctx, last: null, eraser: tool === 'eraser',
+      opacity: (+$('#brushOpacityN').value || 100) / 100,
+      usePressure: $('#brushPressure').checked && e.pointerType !== 'mouse' };
+    strokeTo(op, ox, oy, e.pressure || 0.5);
+    strokeComposite(op);
+    return;
+  }
+  if (tool === 'lasso') {
+    overlay.setPointerCapture(e.pointerId);
+    op = { type: 'lasso', pts: [[ox, oy]], last: [mx, my] };
+    return;
+  }
+  // 移動・変形ツール
   overlay.setPointerCapture(e.pointerId);
   const l = sel();
-  if (l && l.type === 'image' && l.visible) {
-    const [ox, oy] = toOut(mx, my);
+  if (isRaster(l) && l.visible) {
     const h = hitTest(l, mx, my);
     checkpoint();
     const base = { l, ox, oy, cx: l.cx, cy: l.cy, rot: l.rot, ...tf(l) };
-    if (h.type === 'handle') {
-      op = { ...base, type: 'scale', hx: h.hx, hy: h.hy, ssx0: base.ssx, ssy0: base.ssy };
-    } else if (h.type === 'inside') {
-      op = { ...base, type: 'move' };
-    } else {
-      op = { ...base, type: 'rotate', a0: Math.atan2(oy - l.cy, ox - l.cx) };
-    }
+    if (h.type === 'handle') op = { ...base, type: 'scale', hx: h.hx, hy: h.hy, ssx0: base.ssx, ssy0: base.ssy };
+    else if (h.type === 'inside') op = { ...base, type: 'move' };
+    else op = { ...base, type: 'rotate', a0: Math.atan2(oy - l.cy, ox - l.cx) };
     return;
   }
   // GLSL レイヤー選択中は iMouse
-  const [ox, oy] = toOut(mx, my);
   const s = S();
   mouse.x = mouse.cx = ox / s.w;
   mouse.y = mouse.cy = 1 - oy / s.h;
@@ -1694,6 +2097,7 @@ overlay.addEventListener('pointerdown', e => {
 
 overlay.addEventListener('pointermove', e => {
   const [mx, my] = localPoint(e);
+  hover = [mx, my];
   if (!op) {
     if (mouse.down) {
       const [ox, oy] = toOut(mx, my);
@@ -1708,6 +2112,19 @@ overlay.addEventListener('pointermove', e => {
     view.panX = op.px + (e.clientX - op.sx);
     view.panY = op.py + (e.clientY - op.sy);
     fitStage();
+    return;
+  }
+  if (op.type === 'stroke') {
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    for (const ev of (evs.length ? evs : [e])) {
+      const [px, py] = localPoint(ev);
+      strokeTo(op, ...toOut(px, py), ev.pressure || 0.5);
+    }
+    strokeComposite(op);
+    return;
+  }
+  if (op.type === 'lasso') {
+    if (Math.hypot(mx - op.last[0], my - op.last[1]) >= 2) { op.pts.push(toOut(mx, my)); op.last = [mx, my]; }
     return;
   }
   const l = op.l;
@@ -1731,14 +2148,12 @@ overlay.addEventListener('pointermove', e => {
 function applyScaleDrag(o, ox, oy, shift, alt) {
   const l = o.l;
   const { c, s, ssx0, ssy0, hx, hy } = o;
-  // 中心基準のローカル座標（画像px）
   const h = [(hx - 0.5) * l.iw, (hy - 0.5) * l.ih];
   const A = alt ? [0, 0] : [-h[0], -h[1]];
-  // ドラッグ開始時のアンカー位置（出力px）
   const ax0 = A[0] * ssx0, ay0 = A[1] * ssy0;
   const PA = [o.cx + c * ax0 - s * ay0, o.cy + s * ax0 + c * ay0];
   const vx = ox - PA[0], vy = oy - PA[1];
-  const d = [c * vx + s * vy, -s * vx + c * vy];          // 回転を戻した移動量
+  const d = [c * vx + s * vy, -s * vx + c * vy];
   const lock = $('#pLock').checked !== shift;
   const fix = v => (Math.abs(v) < 1e-3 ? (v < 0 ? -1e-3 : 1e-3) : v);
   const ex = h[0] - A[0], ey = h[1] - A[1];
@@ -1752,14 +2167,13 @@ function applyScaleDrag(o, ox, oy, shift, alt) {
     ssx = fix(d[0] / ex); ssy = fix(d[1] / ey);
   } else if (ex !== 0) {
     ssx = fix(d[0] / ex);
-    if (lock) { const f = Math.abs(ssx / ssx0); ssy = ssy0 * f; }
+    if (lock) ssy = ssy0 * Math.abs(ssx / ssx0);
   } else {
     ssy = fix(d[1] / ey);
-    if (lock) { const f = Math.abs(ssy / ssy0); ssx = ssx0 * f; }
+    if (lock) ssx = ssx0 * Math.abs(ssy / ssy0);
   }
   l.sx = Math.abs(ssx); l.flipH = ssx < 0;
   l.sy = Math.abs(ssy); l.flipV = ssy < 0;
-  // アンカーが動かないように中心を補正
   const ax = A[0] * ssx, ay = A[1] * ssy;
   l.cx = PA[0] - (c * ax - s * ay);
   l.cy = PA[1] - (s * ax + c * ay);
@@ -1767,7 +2181,19 @@ function applyScaleDrag(o, ox, oy, shift, alt) {
 
 function endPointer() {
   if (op) {
-    if (op.type !== 'pan') { refreshProps(); scheduleSave(); }
+    if (op.type === 'stroke') {
+      schedulePaintSave(op.l);
+      renderLayerList();
+      scheduleSave();
+    } else if (op.type === 'lasso') {
+      const pts = op.pts;
+      op = null;
+      if (pts.length >= 3) {
+        const mode = $('#lassoMode').value;
+        const l = paintTarget(mode === 'erase');
+        if (l && l.visible) fillLasso(l, pts, mode);
+      }
+    } else if (op.type !== 'pan') { refreshProps(); scheduleSave(); }
     op = null;
   }
   mouse.down = false;
@@ -1776,8 +2202,8 @@ function endPointer() {
 }
 overlay.addEventListener('pointerup', endPointer);
 overlay.addEventListener('pointercancel', endPointer);
+overlay.addEventListener('pointerleave', () => { if (!op) hover = null; });
 overlay.addEventListener('auxclick', e => e.preventDefault());
-
 overlay.addEventListener('wheel', e => {
   e.preventDefault();
   const [mx, my] = localPoint(e);
@@ -1789,9 +2215,26 @@ function drawOverlay() {
   const dpr = window.devicePixelRatio || 1;
   octx.setTransform(1, 0, 0, 1, 0, 0);
   octx.clearRect(0, 0, overlay.width, overlay.height);
-  const l = sel();
-  if (!l || l.type !== 'image' || !l.tex) return;
   octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  if (op && op.type === 'lasso' && op.pts.length > 1) {
+    octx.beginPath();
+    op.pts.forEach(([ox, oy], i) => { const [x, y] = toScreen(ox, oy); i ? octx.lineTo(x, y) : octx.moveTo(x, y); });
+    octx.closePath();
+    octx.fillStyle = $('#lassoMode').value === 'erase' ? 'rgba(255,90,90,.15)' : 'rgba(242,180,92,.15)';
+    octx.fill();
+    octx.lineWidth = 1.5; octx.strokeStyle = '#000'; octx.setLineDash([]); octx.stroke();
+    octx.strokeStyle = '#fff'; octx.setLineDash([5, 4]); octx.lineDashOffset = -(performance.now() / 40) % 9; octx.stroke();
+    octx.setLineDash([]);
+  }
+  if ((tool === 'pen' || tool === 'eraser') && hover && !spaceDown) {
+    const r = Math.max(1, brushSize() * view.k / 2);
+    octx.beginPath(); octx.arc(hover[0], hover[1], r, 0, Math.PI * 2);
+    octx.lineWidth = 2; octx.strokeStyle = 'rgba(0,0,0,.6)'; octx.stroke();
+    octx.lineWidth = 1; octx.strokeStyle = '#fff'; octx.stroke();
+  }
+  const l = sel();
+  if (tool !== 'move' || !isRaster(l) || !l.tex) return;
   const pts = [[0, 0], [1, 0], [1, 1], [0, 1]].map(([u, v]) => toScreen(...localToOut(l, u * l.iw, v * l.ih)));
   octx.beginPath();
   pts.forEach(([x, y], i) => (i ? octx.lineTo(x, y) : octx.moveTo(x, y)));
@@ -1808,7 +2251,7 @@ function drawOverlay() {
   const [cx, cy] = toScreen(l.cx, l.cy);
   octx.strokeStyle = '#fff'; octx.lineWidth = 1;
   octx.beginPath(); octx.moveTo(cx - 6, cy); octx.lineTo(cx + 6, cy); octx.moveTo(cx, cy - 6); octx.lineTo(cx, cy + 6); octx.stroke();
-  if (op && op.l === l && op.type !== 'move') {
+  if (op && op.l === l && (op.type === 'rotate' || op.type === 'scale')) {
     const txt = op.type === 'rotate' ? `${l.rot.toFixed(1)}°` : `${(l.sx * 100).toFixed(1)}% × ${(l.sy * 100).toFixed(1)}%`;
     octx.font = '12px ui-monospace, monospace';
     const w = octx.measureText(txt).width + 10;
@@ -1820,8 +2263,9 @@ function drawOverlay() {
 /* ---------- keyboard ---------- */
 function isTyping(e) {
   const t = e.target;
-  return t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['checkbox', 'button'].includes(t.type)) || t.isContentEditable);
+  return t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['checkbox', 'button', 'color'].includes(t.type)) || t.isContentEditable);
 }
+const TOOL_KEYS = { KeyV: 'move', KeyP: 'pen', KeyB: 'pen', KeyE: 'eraser', KeyL: 'lasso', KeyH: 'hand' };
 window.addEventListener('keydown', e => {
   if (isTyping(e)) return;
   const mod = e.ctrlKey || e.metaKey;
@@ -1829,13 +2273,17 @@ window.addEventListener('keydown', e => {
   if (mod && e.code === 'KeyZ') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if (mod && e.code === 'KeyY') { e.preventDefault(); redo(); return; }
   if (mod && e.altKey && e.code === 'KeyG') { e.preventDefault(); toggleClip(); return; }
+  if (mod && e.code === 'KeyG') { e.preventDefault(); groupSelected(); return; }
   if (mod && (e.code === 'Digit0' || e.code === 'Numpad0')) { e.preventDefault(); e.altKey ? actualPixels() : fitView(); return; }
   if (mod && (e.key === '+' || e.key === '=' || e.key === ';' || e.code === 'NumpadAdd')) { e.preventDefault(); zoomAt(1.25); return; }
   if (mod && (e.key === '-' || e.code === 'NumpadSubtract')) { e.preventDefault(); zoomAt(0.8); return; }
+  if (!mod && !e.altKey && TOOL_KEYS[e.code]) { e.preventDefault(); setTool(TOOL_KEYS[e.code]); return; }
+  if (!mod && e.key === '[') { setBrushSize(brushSize() / 1.25); return; }
+  if (!mod && e.key === ']') { setBrushSize(brushSize() * 1.25 + 0.5); return; }
   const l = sel();
   if (!l) return;
-  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); removeLayer(l); return; }
-  if (l.type === 'image' && e.key.startsWith('Arrow')) {
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); removeNode(l); return; }
+  if (isRaster(l) && e.key.startsWith('Arrow')) {
     e.preventDefault();
     const st = e.shiftKey ? 10 : 1;
     checkpoint('nudge' + l.id);
@@ -1856,7 +2304,7 @@ window.addEventListener('blur', () => { spaceDown = false; });
    ================================================================ */
 function renderContent(l, fb, chSrc, ctx) {
   const W = canvas.width, H = canvas.height;
-  if (l.type === 'image') {
+  if (isRaster(l)) {
     gl.useProgram(P.image.prog);
     bindTex(0, l.tex);
     gl.uniform1i(P.image.u.uTex, 0);
@@ -1864,6 +2312,7 @@ function renderContent(l, fb, chSrc, ctx) {
     gl.uniform2f(P.image.u.uImg, l.iw, l.ih);
     gl.uniform1f(P.image.u.uCanvasH, H);
     drawTo(fb);
+    bindTex(0, null);
     return;
   }
   const U = l.U;
@@ -1871,10 +2320,10 @@ function renderContent(l, fb, chSrc, ctx) {
     gl.useProgram(P.unpremul.prog);
     bindTex(0, chSrc);
     gl.uniform1i(P.unpremul.u.uSrc, 0);
-    drawTo(RT.ch.fb);
+    drawTo(chTarget().fb);
   }
   gl.useProgram(l.prog);
-  bindTex(0, RT.ch.tex);
+  bindTex(0, chTarget().tex);
   gl.uniform1i(U.iChannel0, 0);
   gl.uniform3f(U.iResolution, W, H, 1);
   gl.uniform1f(U.iTime, ctx.time);
@@ -1891,22 +2340,26 @@ function renderContent(l, fb, chSrc, ctx) {
   gl.uniform3fv(U.iChannelResolution, res);
   gl.uniform1i(U._alphaMode, l.alphaMode);
   drawTo(fb);
+  bindTex(0, null);
 }
 
-/** レイヤーの中身＋加工を描き、結果のテクスチャを返す */
-function layerTexture(l, chSrc, ctx) {
-  renderContent(l, RT.layer.fb, chSrc, ctx);
-  const f = l.fx;
-  if (!fxActive(f)) return RT.layer.tex;
+/** 加工を順にかける。src は所有権ごと受け取り、結果のターゲットを返す */
+function applyFx(n, src, ctx) {
+  const f = n.fx;
+  if (!fxActive(f)) return src;
   const W = canvas.width, H = canvas.height;
-  let src = RT.layer.tex, pi = 0;
-  const next = () => { const t = RT.fx[pi]; pi ^= 1; return t; };
-  if (fxColorActive(f)) {
-    const t = next();
-    const u = P.fxc.u;
-    gl.useProgram(P.fxc.prog);
-    bindTex(0, src);
-    gl.uniform1i(u.uSrc, 0);
+  const pass = (prog, setU) => {
+    const out = acquire();
+    gl.useProgram(prog.prog);
+    bindTex(0, src.tex);
+    gl.uniform1i(prog.u.uSrc, 0);
+    setU(prog.u);
+    drawTo(out.fb);
+    bindTex(0, null);
+    release(src);
+    src = out;
+  };
+  if (fxColorActive(f)) pass(P.fxc, u => {
     gl.uniform1i(u.uKey, f.key === 'white' ? 1 : f.key === 'black' ? 2 : 0);
     gl.uniform1i(u.uColorOn, f.colorOn ? 1 : 0);
     gl.uniform3f(u.uColor, ...hex2rgb(f.color));
@@ -1917,35 +2370,29 @@ function layerTexture(l, chSrc, ctx) {
     gl.uniform1f(u.uLight, f.light / 100);
     gl.uniform1i(u.uInvert, f.invert ? 1 : 0);
     gl.uniform1f(u.uPoster, f.posterize >= 2 ? f.posterize : 0);
-    drawTo(t.fb);
-    src = t.tex;
-  }
-  if (f.outline > 0) {
-    const t = next();
-    gl.useProgram(P.outline.prog);
-    bindTex(0, src);
-    gl.uniform1i(P.outline.u.uSrc, 0);
-    gl.uniform2f(P.outline.u.uSize, W, H);
-    gl.uniform1f(P.outline.u.uR, f.outline * ctx.ps);
-    gl.uniform3f(P.outline.u.uCol, ...hex2rgb(f.outlineColor));
-    drawTo(t.fb);
-    src = t.tex;
-  }
+  });
+  if (f.outline > 0) pass(P.outline, u => {
+    gl.uniform2f(u.uSize, W, H);
+    gl.uniform1f(u.uR, f.outline * ctx.ps);
+    gl.uniform3f(u.uCol, ...hex2rgb(f.outlineColor));
+  });
   if (f.blur > 0) {
     const sigma = Math.max(0.3, f.blur * ctx.ps / 2);
-    for (const dir of [[1, 0], [0, 1]]) {
-      const t = next();
-      gl.useProgram(P.blur.prog);
-      bindTex(0, src);
-      gl.uniform1i(P.blur.u.uSrc, 0);
-      gl.uniform2f(P.blur.u.uSize, W, H);
-      gl.uniform2f(P.blur.u.uDir, dir[0], dir[1]);
-      gl.uniform1f(P.blur.u.uSigma, sigma);
-      drawTo(t.fb);
-      src = t.tex;
-    }
+    for (const dir of [[1, 0], [0, 1]]) pass(P.blur, u => {
+      gl.uniform2f(u.uSize, W, H);
+      gl.uniform2f(u.uDir, dir[0], dir[1]);
+      gl.uniform1f(u.uSigma, sigma);
+    });
   }
   return src;
+}
+
+/** ノードの中身（加工済み）を新しいターゲットに描いて返す */
+function nodeTexture(n, belowTex, ctx) {
+  if (n.type === 'folder') return applyFx(n, composeList(n.children, acquireCleared(), ctx), ctx);
+  const t = acquire();
+  renderContent(n, t.fb, belowTex, ctx);
+  return applyFx(n, t, ctx);
 }
 
 function composite(baseTex, layerTex, opacity, blend, outFb, clip) {
@@ -1955,59 +2402,58 @@ function composite(baseTex, layerTex, opacity, blend, outFb, clip) {
   gl.uniform1i(P.comp.u.uBase, 0);
   gl.uniform1i(P.comp.u.uLayer, 1);
   gl.uniform1f(P.comp.u.uOpacity, opacity);
-  gl.uniform1i(P.comp.u.uMode, BLEND_ID[blend] ?? 0);
+  gl.uniform1i(P.comp.u.uMode, BLEND_ID[blend === 'through' ? 'normal' : blend] ?? 0);
   gl.uniform1i(P.comp.u.uClip, clip ? 1 : 0);
   drawTo(outFb);
   unbindAll();
 }
 
+/** list を acc の上に重ねていく（acc の所有権を受け取り、新しい acc を返す） */
+function composeList(list, acc, ctx) {
+  let i = 0;
+  while (i < list.length) {
+    const base = list[i];
+    const clipped = [];
+    let j = i + 1;
+    while (j < list.length && list[j].clip) clipped.push(list[j++]);
+    i = j;
+    if (!nodeShown(base)) continue;          // 下地が非表示ならクリッピングも非表示
+    const vis = clipped.filter(nodeShown);
+    // 通過フォルダ：中身をそのまま今の重なりに合成する
+    if (base.type === 'folder' && base.blend === 'through' && base.opacity >= 1 && !vis.length && !fxActive(base.fx)) {
+      acc = composeList(base.children, acc, ctx);
+      continue;
+    }
+    let g = nodeTexture(base, acc.tex, ctx);
+    for (const c of vis) {
+      const ct = nodeTexture(c, g.tex, ctx);
+      const out = acquire();
+      composite(g.tex, ct.tex, c.opacity, c.blend, out.fb, true);
+      release(ct); release(g);
+      g = out;
+    }
+    const out = acquire();
+    composite(acc.tex, g.tex, base.opacity, base.blend, out.fb, false);
+    release(g); release(acc);
+    acc = out;
+  }
+  return acc;
+}
+
 function render(time, frame, dt) {
   const s = S();
   const W = canvas.width, H = canvas.height;
-  ensureTargets(W, H);
+  ensurePool(W, H);
+  for (const n of allNodes()) if (n.type === 'paint' && n.texDirty) { uploadTexture(n, n.canvas); n.texDirty = false; }
   const ctx = { time, frame, dt, s, ps: W / s.w };
-  let cur = 0;
-  clearTarget(RT.acc[0]);
-
-  let i = 0;
-  while (i < layers.length) {
-    const base = layers[i];
-    const clipped = [];
-    let j = i + 1;
-    while (j < layers.length && layers[j].clip) clipped.push(layers[j++]);
-    i = j;
-    if (!base.visible || base.opacity <= 0 || !layerReady(base)) continue;   // 下地が非表示ならクリッピングも非表示
-    const vis = clipped.filter(c => c.visible && c.opacity > 0 && layerReady(c));
-
-    if (!vis.length) {
-      const tex = layerTexture(base, RT.acc[cur].tex, ctx);
-      composite(RT.acc[cur].tex, tex, base.opacity, base.blend, RT.acc[1 - cur].fb, false);
-      cur ^= 1;
-      continue;
-    }
-    // クリッピンググループ: 下地 → grp、クリッピングレイヤーを下地の内側に重ねる
-    let g = 0;
-    const baseTex = layerTexture(base, RT.acc[cur].tex, ctx);
-    gl.useProgram(P.copy.prog);
-    bindTex(0, baseTex);
-    gl.uniform1i(P.copy.u.uSrc, 0);
-    drawTo(RT.grp[0].fb);
-    unbindAll();
-    for (const c of vis) {
-      const tex = layerTexture(c, RT.grp[g].tex, ctx);
-      composite(RT.grp[g].tex, tex, c.opacity, c.blend, RT.grp[1 - g].fb, true);
-      g ^= 1;
-    }
-    composite(RT.acc[cur].tex, RT.grp[g].tex, base.opacity, base.blend, RT.acc[1 - cur].fb, false);
-    cur ^= 1;
-  }
-
+  const acc = composeList(root, acquireCleared(), ctx);
   gl.useProgram(P.final.prog);
-  bindTex(0, RT.acc[cur].tex);
+  bindTex(0, acc.tex);
   gl.uniform1i(P.final.u.uSrc, 0);
   gl.uniform1i(P.final.u.uBlack, s.blackBg ? 1 : 0);
   drawTo(null);
   unbindAll();
+  release(acc);
 }
 
 /* ---------- playback ---------- */
@@ -2058,7 +2504,7 @@ function crc32(bytes) {
   for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
   return (c ^ 0xFFFFFFFF) >>> 0;
 }
-/** 無圧縮(store)ZIP。PNGはすでに圧縮済みなので再圧縮は不要 */
+/** 無圧縮(store)ZIP */
 class ZipSink {
   constructor() {
     this.parts = []; this.central = []; this.offset = 0; this.cdSize = 0; this.count = 0;
@@ -2190,30 +2636,35 @@ $('#btnDir').addEventListener('click', () => exportSequence('dir'));
 $('#btnCancel').addEventListener('click', () => { cancelReq = true; });
 
 /* ================================================================
-   Persistence（設定とGLSL → localStorage / 画像 → IndexedDB）
+   Persistence（設定とGLSL → localStorage / 画像・描画・最近のプロジェクト → IndexedDB）
    ================================================================ */
 const idb = (() => {
   let dbp = null;
   const open = () => dbp ??= new Promise((res, rej) => {
-    const r = indexedDB.open('glsl-effect-exporter', 1);
-    r.onupgradeneeded = () => r.result.createObjectStore('images');
+    const r = indexedDB.open('glsl-effect-exporter', 2);
+    r.onupgradeneeded = () => {
+      const db = r.result;
+      if (!db.objectStoreNames.contains('images')) db.createObjectStore('images');
+      if (!db.objectStoreNames.contains('recent')) db.createObjectStore('recent');
+    };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
   });
-  const run = async (mode, fn) => {
+  const run = async (store, mode, fn) => {
     const db = await open();
     return new Promise((res, rej) => {
-      const t = db.transaction('images', mode);
-      const req = fn(t.objectStore('images'));
+      const t = db.transaction(store, mode);
+      const req = fn(t.objectStore(store));
       t.oncomplete = () => res(req.result);
       t.onerror = () => rej(t.error);
     });
   };
   return {
-    put: (k, v) => run('readwrite', s => s.put(v, k)),
-    get: k => run('readonly', s => s.get(k)),
-    del: k => run('readwrite', s => s.delete(k)),
-    keys: () => run('readonly', s => s.getAllKeys()),
+    put: (k, v, store = 'images') => run(store, 'readwrite', s => s.put(v, k)),
+    get: (k, store = 'images') => run(store, 'readonly', s => s.get(k)),
+    del: (k, store = 'images') => run(store, 'readwrite', s => s.delete(k)),
+    keys: (store = 'images') => run(store, 'readonly', s => s.getAllKeys()),
+    all: (store = 'images') => run(store, 'readonly', s => s.getAll()),
   };
 })();
 
@@ -2225,20 +2676,22 @@ const DEFAULT_SETTINGS = {};
 for (const id of SETTING_IDS) { const el = $('#' + id); DEFAULT_SETTINGS[id] = el.type === 'checkbox' ? el.checked : el.value; }
 let saveTimer = 0, booting = true;
 
+function serNode(l) {
+  const base = { id: l.id, type: l.type, name: l.name, visible: l.visible, opacity: l.opacity,
+    blend: l.blend, clip: l.clip, fx: { ...l.fx } };
+  const tfm = n => ({ cx: n.cx, cy: n.cy, sx: n.sx, sy: n.sy, rot: n.rot, flipH: n.flipH, flipV: n.flipV, interp: n.interp });
+  if (l.type === 'shader') return { ...base, code: l.code, alphaMode: l.alphaMode };
+  if (l.type === 'image') return { ...base, ...tfm(l) };
+  if (l.type === 'paint') return { ...base, ...tfm(l), pw: l.canvas.width, ph: l.canvas.height };
+  return { ...base, open: l.open, children: l.children.map(serNode) };
+}
 function serializeState() {
   const settings = {};
   for (const id of SETTING_IDS) {
     const el = $('#' + id);
     settings[id] = el.type === 'checkbox' ? el.checked : el.value;
   }
-  const ls = layers.map(l => {
-    const base = { id: l.id, type: l.type, name: l.name, visible: l.visible, opacity: l.opacity,
-      blend: l.blend, clip: l.clip, fx: { ...l.fx } };
-    return l.type === 'shader'
-      ? { ...base, code: l.code, alphaMode: l.alphaMode }
-      : { ...base, cx: l.cx, cy: l.cy, sx: l.sx, sy: l.sy, rot: l.rot, flipH: l.flipH, flipV: l.flipV, interp: l.interp };
-  });
-  return { settings, layers: ls };
+  return { settings, layers: root.map(serNode) };
 }
 function hashStr(str) {
   let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
@@ -2251,17 +2704,19 @@ function hashStr(str) {
   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
 }
-const stateSig = () => hashStr(JSON.stringify(serializeState()));
+// 描画内容の変化も「未保存」に含める
+let paintEditCount = 0;
+const stateSig = () => hashStr(JSON.stringify(serializeState()) + '|' + paintEditCount);
 
 function scheduleSave() {
   if (booting) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     const st = serializeState();
-    project.dirty = hashStr(JSON.stringify(st)) !== project.sig;
+    project.dirty = hashStr(JSON.stringify(st) + '|' + paintEditCount) !== project.sig;
     updateProjLabel();
     try {
-      localStorage.setItem(STORE_KEY, JSON.stringify({ ...st, selId, projName: project.name, projSig: project.sig }));
+      localStorage.setItem(STORE_KEY, JSON.stringify({ ...st, selId, projName: project.name, projSig: project.sig, paintEdits: paintEditCount }));
     } catch (_) { /* storage unavailable */ }
   }, 300);
 }
@@ -2272,17 +2727,19 @@ function applySettings(settings) {
     if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
   }
   if ($('#bgMode').selectedIndex < 0) $('#bgMode').value = 'checker-dark';
+  if ($('#pscale').selectedIndex < 0) $('#pscale').value = '0.5';
 }
-async function restoreLayers(list, legacy, blobs) {
+async function restoreNodes(list, legacy, blobs) {
   const s = S();
+  const out = [];
   for (const d of list || []) {
     if (legacy && d.blend === 'add') d.blend = 'addglow';   // 旧「加算（発光）」
-    if (d.type === 'shader') {
-      const l = makeShaderLayer(d);
-      compileLayer(l);
-      layers.push(l);
-    } else if (d.type === 'image') {
-      try {
+    try {
+      if (d.type === 'shader') {
+        const l = makeShaderLayer(d);
+        compileLayer(l);
+        out.push(l);
+      } else if (d.type === 'image') {
         const blob = blobs ? blobs.get(d.id) : await idb.get(d.id);
         if (!blob) continue;
         if (blobs) idb.put(d.id, blob).catch(() => {});
@@ -2292,20 +2749,34 @@ async function restoreLayers(list, legacy, blobs) {
           const k = Math.min(s.w / l.iw, s.h / l.ih) * (d.scale ?? 1);
           Object.assign(l, { cx: (d.x ?? 0.5) * s.w, cy: (d.y ?? 0.5) * s.h, sx: k, sy: k });
         }
-        layers.push(l);
-      } catch (_) { /* 画像が読めなければ飛ばす */ }
-    }
+        out.push(l);
+      } else if (d.type === 'paint') {
+        const l = makePaintLayer(d);
+        const blob = blobs ? blobs.get(d.id) : await idb.get(d.id);
+        if (blob) {
+          if (blobs) idb.put(d.id, blob).catch(() => {});
+          const bmp = await createImageBitmap(blob);
+          l.canvas.getContext('2d').drawImage(bmp, 0, 0);
+        }
+        out.push(l);
+      } else if (d.type === 'folder') {
+        const f = makeFolder(d);
+        f.children = await restoreNodes(d.children, legacy, blobs);
+        out.push(f);
+      }
+    } catch (_) { /* 読めないレイヤーは飛ばす */ }
   }
+  return out;
 }
 async function restore() {
   const read = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (_) { return null; } };
   let data = read(STORE_KEY), legacy = false;
   if (!data) { data = read(V2_KEY); legacy = !!data; }
   if (data) {
-    if (!legacy) { project.name = data.projName || '無題'; project.sig = data.projSig ?? null; }
+    if (!legacy) { project.name = data.projName || '無題'; project.sig = data.projSig ?? null; paintEditCount = data.paintEdits || 0; }
     applySettings(data.settings);
-    await restoreLayers(data.layers, legacy);
-    return byId(data.selId) ? data.selId : (layers.at(-1)?.id ?? null);
+    root = await restoreNodes(data.layers, legacy, null);
+    return byId(data.selId) ? data.selId : (root.at(-1)?.id ?? null);
   }
   const old = read(V1_KEY);
   if (old && typeof old.code === 'string') {
@@ -2313,14 +2784,14 @@ async function restore() {
     applySettings(rest);
     const l = makeShaderLayer({ code: old.code, alphaMode: +alphaMode || 0 });
     compileLayer(l);
-    layers.push(l);
+    root = [l];
     return l.id;
   }
   return null;
 }
 async function cleanupImages() {
   try {
-    const live = new Set(layers.map(l => l.id));
+    const live = new Set(allNodes().map(l => l.id));
     for (const k of await idb.keys()) if (!live.has(k)) await idb.del(k);
   } catch (_) {}
 }
@@ -2367,23 +2838,48 @@ async function readZip(file) {
   return out;
 }
 
-async function saveProject(saveAs) {
+function makeThumb() {
   try {
-    const st = serializeState();
-    const meta = { format: 'glsl-effect-exporter', version: 1, savedAt: new Date().toISOString(), ...st, selId };
-    const zip = new ZipSink();
-    const images = [];
-    for (const l of layers) {
-      if (l.type !== 'image') continue;
+    const t = document.createElement('canvas');
+    const k = Math.min(240 / canvas.width, 140 / canvas.height);
+    t.width = Math.max(1, Math.round(canvas.width * k));
+    t.height = Math.max(1, Math.round(canvas.height * k));
+    const c = t.getContext('2d');
+    c.fillStyle = '#2b2d33'; c.fillRect(0, 0, t.width, t.height);
+    render(S().start + elapsed, 0, 0);
+    c.drawImage(canvas, 0, 0, t.width, t.height);
+    return t.toDataURL('image/jpeg', 0.8);
+  } catch (_) { return ''; }
+}
+
+async function buildProjectBlob() {
+  const st = serializeState();
+  const meta = { format: 'glsl-effect-exporter', version: 2, savedAt: new Date().toISOString(), ...st, selId };
+  const byIdSer = new Map();
+  const walkSer = list => { for (const d of list) { byIdSer.set(d.id, d); if (d.children) walkSer(d.children); } };
+  walkSer(meta.layers);
+  const files = [];
+  for (const l of allNodes()) {
+    if (l.type === 'image') {
       const ext = ((l.blob.type || '').split('/')[1] || 'png').replace('jpeg', 'jpg').replace(/[^a-z0-9]/g, '') || 'png';
       const path = `images/${l.id}.${ext}`;
-      meta.layers.find(d => d.id === l.id).file = path;
-      images.push([path, l.blob]);
+      byIdSer.get(l.id).file = path;
+      files.push([path, l.blob]);
+    } else if (l.type === 'paint') {
+      const path = `paint/${l.id}.png`;
+      byIdSer.get(l.id).file = path;
+      files.push([path, await canvasToBlob(l.canvas)]);
     }
-    await zip.add('project.json', new Blob([JSON.stringify(meta, null, 2)], { type: 'application/json' }));
-    for (const [path, blob] of images) await zip.add(path, blob);
-    const blob = zip.build();
+  }
+  const zip = new ZipSink();
+  await zip.add('project.json', new Blob([JSON.stringify(meta, null, 2)], { type: 'application/json' }));
+  for (const [path, blob] of files) await zip.add(path, blob);
+  return { blob: zip.build(), st };
+}
 
+async function saveProject(saveAs) {
+  try {
+    const { blob, st } = await buildProjectBlob();
     if (window.showSaveFilePicker) {
       if (saveAs || !project.handle) {
         project.handle = await window.showSaveFilePicker({ suggestedName: project.name + PROJECT_EXT, types: PROJECT_TYPES });
@@ -2400,40 +2896,43 @@ async function saveProject(saveAs) {
       }
       download(blob, project.name + PROJECT_EXT);
     }
-    project.sig = hashStr(JSON.stringify(st));
+    paintEditCount = 0;
+    project.sig = hashStr(JSON.stringify(st) + '|0');
     project.dirty = false;
     updateProjLabel();
     scheduleSave();
+    addRecent(project.name, blob, project.handle);
     setStatus(`「${project.name}」を保存しました`);
   } catch (e) {
     if (e.name !== 'AbortError') setStatus('保存できませんでした: ' + e.message);
   }
 }
 
-function disposeLayers() {
-  for (const l of layers) {
-    if (l.type === 'image') { if (l.tex) gl.deleteTexture(l.tex); if (l.url) URL.revokeObjectURL(l.url); }
-    else if (l.prog) gl.deleteProgram(l.prog);
+function disposeAll() {
+  for (const l of allNodes()) {
+    if (l.tex) gl.deleteTexture(l.tex);
+    if (l.url) URL.revokeObjectURL(l.url);
+    if (l.prog) gl.deleteProgram(l.prog);
   }
-  layers = [];
+  root = [];
   hist.undo = []; hist.redo = []; hist.key = null;
 }
 
 async function loadProjectState(meta, blobs, name, handle) {
   booting = true;
   try {
-    disposeLayers();
+    disposeAll();
     applySettings(DEFAULT_SETTINGS);
     let first = null;
     if (meta) {
       applySettings(meta.settings);
-      await restoreLayers(meta.layers, false, blobs);
-      first = byId(meta.selId) ? meta.selId : (layers.at(-1)?.id ?? null);
+      root = await restoreNodes(meta.layers, false, blobs);
+      first = byId(meta.selId) ? meta.selId : (root.at(-1)?.id ?? null);
     } else {
       const p = PRESETS[0];
       const l = makeShaderLayer({ name: p.name, code: p.code, alphaMode: p.alphaMode, blend: p.blend });
       compileLayer(l);
-      layers.push(l);
+      root = [l];
       first = l.id;
     }
     applyBg();
@@ -2446,6 +2945,7 @@ async function loadProjectState(meta, blobs, name, handle) {
   }
   project.name = name;
   project.handle = handle || null;
+  paintEditCount = 0;
   project.sig = stateSig();
   project.dirty = false;
   updateProjLabel();
@@ -2462,15 +2962,23 @@ async function openProject(file, handle) {
     const meta = JSON.parse(new TextDecoder().decode(json));
     if (meta.format !== 'glsl-effect-exporter') throw new Error('このツールのプロジェクトファイルではありません');
     const blobs = new Map();
-    for (const d of meta.layers || []) {
-      if (d.type !== 'image' || !d.file || !entries.has(d.file)) continue;
-      const ext = d.file.split('.').pop().toLowerCase();
-      blobs.set(d.id, new Blob([entries.get(d.file)], { type: MIME[ext] || 'image/png' }));
-    }
-    await loadProjectState(meta, blobs, file.name.replace(/\.glslfx$/i, ''), handle);
+    const walkSer = list => {
+      for (const d of list || []) {
+        if (d.children) walkSer(d.children);
+        if (!d.file || !entries.has(d.file)) continue;
+        const ext = d.file.split('.').pop().toLowerCase();
+        blobs.set(d.id, new Blob([entries.get(d.file)], { type: MIME[ext] || 'image/png' }));
+      }
+    };
+    walkSer(meta.layers);
+    const name = file.name.replace(/\.glslfx$/i, '');
+    await loadProjectState(meta, blobs, name, handle);
+    addRecent(name, file, handle);
     setStatus(`「${project.name}」を開きました`);
+    return true;
   } catch (e) {
     setStatus('開けませんでした: ' + e.message);
+    return false;
   }
 }
 
@@ -2503,6 +3011,83 @@ window.addEventListener('keydown', e => {
   else if (mod && e.code === 'KeyO') { e.preventDefault(); e.stopImmediatePropagation(); pickAndOpenProject(); }
 }, true);
 
+/* ---------- 最近使ったプロジェクト ---------- */
+const RECENT_MAX = 12;
+async function addRecent(name, blob, handle) {
+  try {
+    const list = await idb.all('recent');
+    let hit = null;
+    for (const r of list) {
+      if (handle && r.handle) { try { if (await r.handle.isSameEntry(handle)) { hit = r; break; } } catch (_) {} }
+      else if (!handle && !r.handle && r.name === name) { hit = r; break; }
+    }
+    const id = hit ? hit.id : 'R' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    await idb.put(id, { id, name, time: Date.now(), thumb: makeThumb(), handle: handle || null, blob, size: blob.size }, 'recent');
+    const all = (await idb.all('recent')).sort((a, b) => b.time - a.time);
+    for (const r of all.slice(RECENT_MAX)) await idb.del(r.id, 'recent');
+  } catch (_) { /* 最近の一覧は保存できなくても動作には影響しない */ }
+}
+async function openRecent(r) {
+  if (!confirmDiscard()) return;
+  hideRecent();
+  let file = null, handle = null;
+  if (r.handle) {
+    try {
+      let perm = await r.handle.queryPermission({ mode: 'readwrite' });
+      if (perm !== 'granted') perm = await r.handle.requestPermission({ mode: 'readwrite' });
+      if (perm === 'granted') { file = await r.handle.getFile(); handle = r.handle; }
+    } catch (_) {}
+  }
+  let fromCopy = false;
+  if (!file) { file = new File([r.blob], r.name + PROJECT_EXT); fromCopy = true; }
+  const ok = await openProject(file, handle);
+  if (ok && fromCopy && r.handle) setStatus(`元のファイルが開けなかったため、最後に保存したときのコピーから「${r.name}」を開きました`);
+}
+function fmtDate(t) {
+  const d = new Date(t), p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+async function showRecent() {
+  const pop = $('#recentPop');
+  let list = [];
+  try { list = (await idb.all('recent')).sort((a, b) => b.time - a.time); } catch (_) {}
+  pop.innerHTML = '';
+  if (!list.length) pop.innerHTML = '<div class="empty">まだありません。プロジェクトを保存したり開いたりすると、ここに並びます。</div>';
+  for (const r of list) {
+    const item = document.createElement('div');
+    item.className = 'recent-item';
+    const img = document.createElement('img');
+    if (r.thumb) img.src = r.thumb;
+    const info = document.createElement('div');
+    info.className = 'ri';
+    info.innerHTML = '<div class="rn"></div><div class="rd"></div>';
+    info.querySelector('.rn').textContent = r.name;
+    info.querySelector('.rd').textContent = `${fmtDate(r.time)}　${(r.size / 1024 / 1024).toFixed(1)}MB${r.handle ? '' : '（コピー）'}`;
+    const x = document.createElement('button');
+    x.className = 'rx';
+    x.textContent = '×';
+    x.title = '一覧から外す（ファイルは消えません）';
+    x.addEventListener('click', async e => { e.stopPropagation(); await idb.del(r.id, 'recent'); showRecent(); });
+    item.append(img, info, x);
+    item.addEventListener('click', () => openRecent(r));
+    pop.appendChild(item);
+  }
+  const b = $('#projRecentBtn').getBoundingClientRect();
+  pop.hidden = false;
+  const h = pop.offsetHeight;
+  pop.style.left = Math.min(b.left, window.innerWidth - 370) + 'px';
+  pop.style.top = (b.top - h - 6 > 8 ? b.top - h - 6 : b.bottom + 6) + 'px';
+}
+function hideRecent() { $('#recentPop').hidden = true; }
+$('#projRecentBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  if ($('#recentPop').hidden) showRecent(); else hideRecent();
+});
+document.addEventListener('pointerdown', e => {
+  if (!$('#recentPop').hidden && !e.target.closest('#recentPop,#projRecentBtn')) hideRecent();
+});
+window.addEventListener('keydown', e => { if (e.key === 'Escape') hideRecent(); });
+
 /* ================================================================
    Boot
    ================================================================ */
@@ -2513,17 +3098,19 @@ window.addEventListener('keydown', e => {
     return;
   }
   initGL();
+  loadUI();
   let first = await restore();
-  if (!layers.length && first === null) {
+  if (!root.length && first === null) {
     const p = PRESETS[0];
     const l = makeShaderLayer({ name: p.name, code: p.code, alphaMode: p.alphaMode, blend: p.blend });
     compileLayer(l);
-    layers.push(l);
+    root = [l];
     first = l.id;
   }
   applyBg();
   onSettingsChange();
   selectLayer(first);
+  setTool(Object.values(TOOL_KEYS).includes(ui.tool) ? ui.tool : 'move');
   updateUndoButtons();
   if (!window.showDirectoryPicker) {
     $('#btnDir').disabled = true;
